@@ -7,9 +7,10 @@ import { getCachedToken } from '../lib/authCache';
 
 interface ModuleViewProps {
   schema: ModuleSchema;
+  userRole?: 'Admin' | 'Manager' | 'Employee';
 }
 
-export default function ModuleView({ schema }: ModuleViewProps) {
+export default function ModuleView({ schema, userRole }: ModuleViewProps) {
   const [data, setData] = useState<any[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -212,13 +213,15 @@ export default function ModuleView({ schema }: ModuleViewProps) {
       <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6 shadow-sm z-10">
         <h2 className="text-xl font-semibold text-neutral-800">{schema.name}</h2>
         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setIsImporting(true)}
-            className="flex items-center space-x-2 bg-white hover:bg-neutral-50 px-3 py-1.5 rounded border border-neutral-300 text-sm font-medium transition-colors shadow-sm"
-          >
-            <Upload className="w-4 h-4 text-neutral-500" />
-            <span>Import CSV/Excel</span>
-          </button>
+          {userRole !== 'Employee' && (
+            <button
+              onClick={() => setIsImporting(true)}
+              className="flex items-center space-x-2 bg-white hover:bg-neutral-50 px-3 py-1.5 rounded border border-neutral-300 text-sm font-medium transition-colors shadow-sm"
+            >
+              <Upload className="w-4 h-4 text-neutral-500" />
+              <span>Import CSV/Excel</span>
+            </button>
+          )}
           <button
             onClick={handleExport}
             className="flex items-center space-x-2 bg-white hover:bg-neutral-50 px-3 py-1.5 rounded border border-neutral-300 text-sm font-medium transition-colors shadow-sm"
@@ -226,16 +229,18 @@ export default function ModuleView({ schema }: ModuleViewProps) {
             <Download className="w-4 h-4 text-neutral-500" />
             <span>Export Excel</span>
           </button>
-          <button 
-            onClick={() => {
-              setSelectedRecord({});
-              setIsEditing(true);
-            }}
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Record</span>
-          </button>
+          {userRole !== 'Employee' && (
+            <button 
+              onClick={() => {
+                setSelectedRecord({});
+                setIsEditing(true);
+              }}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Record</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -370,7 +375,7 @@ export default function ModuleView({ schema }: ModuleViewProps) {
               <h3 className="font-semibold text-neutral-800">
                 {isEditing ? (selectedRecord && selectedRecord[schema.primaryKey] ? `Edit Record` : `New Record`) : `Record Details`}
               </h3>
-              {!isEditing && (
+              {userRole !== 'Employee' && !isEditing && (
                 <button 
                   onClick={() => setIsEditing(true)}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-blue-200 rounded hover:bg-blue-50 transition-colors"

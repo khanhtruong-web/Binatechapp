@@ -84,17 +84,38 @@ export default function App() {
           </ul>
         </nav>
         {/* User / Logout */}
-        <div className="p-4 border-t border-slate-700 space-y-4">
+        <div className="p-4 border-t border-slate-700 space-y-3">
+          {/* User profile & role badge */}
+          <div className="flex items-center space-x-3 px-1 py-1.5 bg-slate-800/40 rounded-xl border border-slate-800">
+            {userInfo?.picture ? (
+              <img src={userInfo.picture} alt="Profile" className="w-9 h-9 rounded-full border border-slate-600" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-blue-600/20 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">
+                {userInfo?.name?.[0] || 'U'}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-slate-205 truncate">{userInfo?.name || 'User'}</p>
+              <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 ${
+                userRole === 'Admin' ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400' :
+                userRole === 'Manager' ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400' :
+                'bg-slate-500/10 border border-slate-500/30 text-slate-400'
+              }`}>
+                {userRole}
+              </span>
+            </div>
+          </div>
+
           <button 
             onClick={() => setShowAIAssistant(true)}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-900/50 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-900/50 py-2 rounded-lg transition-colors text-sm font-medium"
           >
             <Bot className="w-4 h-4" />
             <span>AI Assistant</span>
           </button>
           <button 
             onClick={() => setIsAuthenticated(false)}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-rose-400 py-2.5 rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-rose-400 py-2 rounded-lg transition-colors text-sm font-medium"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
@@ -112,9 +133,9 @@ export default function App() {
         ) : activeTab === 'Settings' ? (
           <Settings userInfo={userInfo} />
         ) : activeTab === 'HR (Personnel)' ? (
-          <HRPersonnel />
+          <HRPersonnel userRole={userRole} />
         ) : activeSchema ? (
-          <ModuleView schema={activeSchema} key={activeSchema.id} />
+          <ModuleView schema={activeSchema} key={activeSchema.id} userRole={userRole} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-slate-500">
             Module Configuration Not Found

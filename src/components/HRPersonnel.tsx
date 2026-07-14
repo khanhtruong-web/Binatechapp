@@ -2,20 +2,25 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload, FileText, Search, Users, Sparkles, Pencil, Check, Trash2, X,
   Loader2, AlertTriangle, Filter, Award, Phone, Mail, Briefcase, GraduationCap,
-  Bot, Download, Copy, SpellCheck, ClipboardList, Target,
+  Bot, Download, Copy, SpellCheck, ClipboardList, Target, Settings as SettingsIcon, BarChart2
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, PieChart, Pie, Tooltip as RechartsTooltip
+} from 'recharts';
 import {
   CVRecord, CvDB, Discipline, loadCvDB, saveCvDB, getGeminiKey,
   extractFileText, callGeminiExtract, toCvRecord, findDuplicate, parseYears,
   callGeminiText, miniMarkdownToHtml,
 } from '../lib/cv';
+import { exportCvToWord } from '../lib/wordExport';
+import { exportCvsToExcel } from '../lib/excelExport';
 
-type SubView = 'extract' | 'directory' | 'search' | 'ai';
+type SubView = 'extract' | 'directory' | 'search' | 'ai' | 'dashboard' | 'disciplines';
 type StagedFile = { file: File; status: 'ready' | 'processing' | 'done' | 'error'; message?: string };
 
-export default function HRPersonnel() {
+export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin' | 'Manager' | 'Employee' }) {
   const [db, setDb] = useState<CvDB>(() => loadCvDB());
-  const [view, setView] = useState<SubView>('extract');
+  const [view, setView] = useState<SubView>(() => userRole === 'Employee' ? 'directory' : 'dashboard');
   const [staged, setStaged] = useState<StagedFile[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
@@ -24,6 +29,29 @@ export default function HRPersonnel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasKey = !!getGeminiKey();
+
+  const tabs = useMemo(() => {
+    const list: { key: SubView; label: string; icon: any }[] = [];
+    if (userRole === 'Employee') {
+      list.push({ key: 'directory', label: 'Personnel Directory', icon: Users });
+      return list;
+    }
+    list.push({ key: 'dashboard', label: 'HR Dashboard', icon: BarChart2 });
+    list.push({ key: 'extract', label: 'CV Extraction', icon: FileText });
+    list.push({ key: 'directory', label: 'Personnel Directory', icon: Users });
+    list.push({ key: 'search', label: 'Smart Search', icon: Search });
+    list.push({ key: 'ai', label: 'AI Tools', icon: Bot });
+    if (userRole === 'Admin') {
+      list.push({ key: 'disciplines', label: 'Disciplines Manager', icon: SettingsIcon });
+    }
+    return list;
+  }, [userRole]);
+
+  useEffect(() => {
+    if (!tabs.some(t => t.key === view)) {
+      setView(tabs[0]?.key || 'directory');
+    }
+  }, [tabs, view]);
 
   useEffect(() => { saveCvDB(db); }, [db]);
 
@@ -139,28 +167,33 @@ export default function HRPersonnel() {
 
       {/* Sub-nav */}
       <div className="bg-white border-b border-neutral-200 px-6 flex gap-1">
-        {([['extract', 'CV Extraction', FileText], ['directory', 'Personnel Directory', Users], ['search', 'Smart Search', Search], ['ai', 'AI Tools', Bot]] as const).map(
-          ([key, label, Icon]) => (
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
             <button
-              key={key}
-              onClick={() => setView(key as SubView)}
+              key={tab.key}
+              onClick={() => setView(tab.key)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                view === key ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                view === tab.key ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Icon className="w-4 h-4" /> {label}
+              <Icon className="w-4 h-4" /> {tab.label}
             </button>
-          )
-        )}
+          );
+        })}
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-6">
-        {!hasKey && (
+        {!hasKey && view === 'extract' && (
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>Chưa cấu hình <b>Gemini API Key</b>. Vào tab <b>Settings</b> nhập key để bật trích xuất AI. Ứng dụng vẫn chạy nhưng nút Extract sẽ báo lỗi.</span>
           </div>
+        )}
+
+        {view === 'dashboard' && (
+          <DashboardView cvs={db.cvs} />
         )}
 
         {view === 'extract' && (
@@ -176,12 +209,12 @@ export default function HRPersonnel() {
             runExtraction={runExtraction}
             clearStaged={clearStaged}
             onReview={setReviewing}
-            onDelete={deleteCv}
+            onDelete={userRole === 'Admin' ? deleteCv : undefined}
           />
         )}
 
         {view === 'directory' && (
-          <DirectoryView cvs={db.cvs} onReview={setReviewing} onDelete={deleteCv} />
+          <DirectoryView cvs={db.cvs} onReview={setReviewing} onDelete={userRole === 'Admin' ? deleteCv : undefined} />
         )}
 
         {view === 'search' && (
@@ -200,6 +233,20 @@ export default function HRPersonnel() {
             }
           />
         )}
+
+        {view === 'disciplines' && userRole === 'Admin' && (
+          <DisciplinesView
+            disciplines={db.disciplines}
+            onSaveDisciplines={(updatedList) => {
+              updateDb((d) => { d.disciplines = updatedList; return d; });
+              toast('Đã lưu cấu hình chuyên môn.', 'ok');
+            }}
+            onResetDisciplines={() => {
+              updateDb((d) => { d.disciplines = [...DEFAULT_DISCIPLINES]; return d; });
+              toast('Đã khôi phục cấu hình chuyên môn mặc định.', 'ok');
+            }}
+          />
+        )}
       </div>
 
       {reviewing && (
@@ -208,6 +255,7 @@ export default function HRPersonnel() {
           disciplines={db.disciplines}
           onClose={() => setReviewing(null)}
           onSave={saveReview}
+          userRole={userRole}
         />
       )}
 
@@ -328,21 +376,29 @@ function StatusBadge({ status, message }: { status: StagedFile['status']; messag
 // ============================================================================
 // Directory view
 // ============================================================================
-function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete: (id: string) => void }) {
+function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete?: (id: string) => void }) {
   const [q, setQ] = useState('');
   const filtered = cvs.filter((c) =>
     [c.candidateName, c.discipline, c.certifications, c.currentPosition, c.workFields].join(' ').toLowerCase().includes(q.toLowerCase())
   );
   return (
     <div className="space-y-4">
-      <div className="relative w-72">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Lọc nhanh theo tên, chuyên môn, chứng chỉ…"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
+        <div className="relative w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Lọc nhanh theo tên, chuyên môn, chứng chỉ…"
+            className="w-full pl-9 pr-3 py-1.5 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        <button
+          onClick={() => exportCvsToExcel(filtered)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer"
+        >
+          <Download className="w-3.5 h-3.5" /> Xuất Excel danh bạ
+        </button>
       </div>
       <CvTable cvs={filtered} onReview={onReview} onDelete={onDelete} caption={`Danh bạ nhân sự (${filtered.length})`} />
     </div>
@@ -666,8 +722,8 @@ function CvTable({ cvs, onReview, onDelete, caption }: { cvs: CVRecord[]; onRevi
 // ============================================================================
 // Review modal (side-by-side: original text | AI-extracted fields)
 // ============================================================================
-function ReviewModal({ record, disciplines, onClose, onSave }: {
-  record: CVRecord; disciplines: Discipline[]; onClose: () => void; onSave: (r: CVRecord, approve: boolean) => void;
+function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
+  record: CVRecord; disciplines: Discipline[]; onClose: () => void; onSave: (r: CVRecord, approve: boolean) => void; userRole?: 'Admin' | 'Manager' | 'Employee';
 }) {
   const [form, setForm] = useState<CVRecord>({ ...record });
   const set = (k: keyof CVRecord, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -676,7 +732,8 @@ function ReviewModal({ record, disciplines, onClose, onSave }: {
     <div>
       <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-slate-500 mb-1">{icon}{label}</label>
       <input value={(form[key] as string) || ''} onChange={(e) => set(key, e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        disabled={userRole === 'Employee'}
+        className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-50 disabled:text-slate-500" />
     </div>
   );
 
@@ -688,7 +745,7 @@ function ReviewModal({ record, disciplines, onClose, onSave }: {
             <h3 className="text-lg font-bold text-slate-800">Review &amp; Edit — {form.candidateName}</h3>
             <p className="text-[11px] text-slate-400">{form.fileName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded hover:bg-neutral-100 text-slate-500"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 rounded hover:bg-neutral-100 text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden">
@@ -714,7 +771,8 @@ function ReviewModal({ record, disciplines, onClose, onSave }: {
                 <div>
                   <label className="text-[11px] font-semibold uppercase text-slate-500 mb-1 block">Discipline</label>
                   <select value={form.discipline} onChange={(e) => set('discipline', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    disabled={userRole === 'Employee'}
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-50 disabled:text-slate-500">
                     {[form.discipline, ...disciplines.map((d) => d.name)].filter((v, i, a) => a.indexOf(v) === i).map((n) => (
                       <option key={n} value={n}>{n}</option>
                     ))}
@@ -734,22 +792,369 @@ function ReviewModal({ record, disciplines, onClose, onSave }: {
               <div>
                 <label className="text-[11px] font-semibold uppercase text-blue-600 mb-1 block">AI Strategic Profile</label>
                 <textarea value={form.aiSummary} onChange={(e) => set('aiSummary', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-blue-200 bg-blue-50/40 rounded min-h-[90px] focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  disabled={userRole === 'Employee'}
+                  className="w-full px-3 py-2 text-sm border border-blue-200 bg-blue-50/40 rounded min-h-[90px] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-75" />
               </div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between px-6 py-3 border-t border-neutral-200 bg-white">
-          <span className="text-[11px] text-slate-400 uppercase font-semibold">Verification Pending · Review AI data</span>
+          <span className="text-[11px] text-slate-400 uppercase font-semibold">
+            {userRole === 'Employee' ? 'Chế độ chỉ xem (Read-only)' : 'Verification Pending · Review AI data'}
+          </span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-neutral-100 rounded">Discard</button>
-            <button onClick={() => onSave(form, false)} className="px-4 py-2 text-sm font-semibold text-slate-700 border border-neutral-300 rounded hover:bg-neutral-50">Keep Changes</button>
-            <button onClick={() => onSave(form, true)} className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-white bg-slate-900 rounded hover:bg-slate-800">
-              <Check className="w-4 h-4" /> Approve &amp; Commit
+            <button
+              onClick={() => exportCvToWord(form)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-blue-700 border border-blue-300 rounded hover:bg-blue-50 cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Export Word
             </button>
+            {userRole === 'Employee' ? (
+              <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-white bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                Đóng / Close
+              </button>
+            ) : (
+              <>
+                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-neutral-100 rounded cursor-pointer">Discard</button>
+                <button onClick={() => onSave(form, false)} className="px-4 py-2 text-sm font-semibold text-slate-700 border border-neutral-300 rounded hover:bg-neutral-50 cursor-pointer">Keep Changes</button>
+                <button onClick={() => onSave(form, true)} className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-white bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
+                  <Check className="w-4 h-4" /> Approve &amp; Commit
+                </button>
+              </>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// HR Dashboard & Reports view
+// ============================================================================
+function DashboardView({ cvs }: { cvs: CVRecord[] }) {
+  const stats = useMemo(() => {
+    const total = cvs.length;
+    const pending = cvs.filter((c) => c.status === 'pending_review').length;
+    const approved = cvs.filter((c) => c.status === 'approved').length;
+    const reviewed = cvs.filter((c) => c.status === 'reviewed').length;
+    
+    // Average experience calculation
+    let totalExp = 0;
+    cvs.forEach(c => {
+      totalExp += parseYears(c.yearsExp);
+    });
+    const avgExp = total ? (totalExp / total).toFixed(1) : '0';
+
+    return { total, pending, approved, reviewed, avgExp };
+  }, [cvs]);
+
+  // Discipline Distribution (Pie Chart)
+  const disciplineData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    cvs.forEach(c => {
+      const d = c.discipline || 'Chưa phân loại';
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [cvs]);
+
+  // Experience breakdown (Bar Chart)
+  const experienceData = useMemo(() => {
+    const ranges = [
+      { name: '0 - 3 năm', value: 0 },
+      { name: '3 - 5 năm', value: 0 },
+      { name: '5 - 10 năm', value: 0 },
+      { name: '10 - 15 năm', value: 0 },
+      { name: 'Trên 15 năm', value: 0 },
+    ];
+    cvs.forEach(c => {
+      const years = parseYears(c.yearsExp);
+      if (years <= 3) ranges[0].value++;
+      else if (years <= 5) ranges[1].value++;
+      else if (years <= 10) ranges[2].value++;
+      else if (years <= 15) ranges[3].value++;
+      else ranges[4].value++;
+    });
+    return ranges.filter(r => r.value > 0);
+  }, [cvs]);
+
+  const COLORS = ['#2563EB', '#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
+
+  return (
+    <div className="space-y-6">
+      {/* Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-450 uppercase">Tổng hồ sơ</div>
+          <div className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</div>
+        </div>
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">Đang chờ duyệt</div>
+          <div className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</div>
+        </div>
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">Đã duyệt (Approved)</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</div>
+        </div>
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">Kinh nghiệm trung bình</div>
+          <div className="text-2xl font-bold text-blue-600 mt-1">{stats.avgExp} năm</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Discipline Distribution */}
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <h3 className="font-semibold text-slate-800 mb-4">Phân bổ theo Chuyên môn (Discipline)</h3>
+          {disciplineData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">Chưa có dữ liệu chuyên môn</div>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+              <div className="w-full md:w-1/2 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={disciplineData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {disciplineData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full md:w-1/2 space-y-2">
+                {disciplineData.map((item, idx) => (
+                  <div key={item.name} className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                    <span className="text-slate-600 font-medium">{item.name}:</span>
+                    <span className="text-slate-800 font-bold">{item.value} ({((item.value / stats.total) * 100).toFixed(0)}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Experience ranges */}
+        <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+          <h3 className="font-semibold text-slate-800 mb-4">Phân bổ năm kinh nghiệm</h3>
+          {experienceData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">Chưa có dữ liệu kinh nghiệm</div>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={experienceData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} allowDecimals={false} />
+                  <RechartsTooltip cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }} />
+                  <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Disciplines View
+// ============================================================================
+function DisciplinesView({
+  disciplines,
+  onSaveDisciplines,
+  onResetDisciplines
+}: {
+  disciplines: Discipline[];
+  onSaveDisciplines: (d: Discipline[]) => void;
+  onResetDisciplines: () => void;
+}) {
+  const [list, setList] = useState<Discipline[]>(() => JSON.parse(JSON.stringify(disciplines)));
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newKeyword, setNewKeyword] = useState('');
+
+  useEffect(() => {
+    setList(JSON.parse(JSON.stringify(disciplines)));
+  }, [disciplines]);
+
+  const handleSave = () => {
+    onSaveDisciplines(list);
+  };
+
+  const handleAddDiscipline = () => {
+    if (!newName.trim()) return;
+    if (list.some(d => d.name.toLowerCase() === newName.trim().toLowerCase())) {
+      alert('Tên chuyên môn đã tồn tại!');
+      return;
+    }
+    const updated = [...list, { name: newName.trim(), keywords: [] }];
+    setList(updated);
+    setNewName('');
+    setActiveIdx(updated.length - 1);
+  };
+
+  const handleDeleteDiscipline = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Xoá chuyên môn "${list[idx].name}"? Các hồ sơ đã gán chuyên môn này vẫn giữ nguyên nhưng auto-detect sẽ bỏ qua.`)) return;
+    const updated = list.filter((_, i) => i !== idx);
+    setList(updated);
+    if (activeIdx === idx) setActiveIdx(null);
+    else if (activeIdx !== null && activeIdx > idx) setActiveIdx(activeIdx - 1);
+  };
+
+  const handleAddKeyword = (idx: number) => {
+    if (!newKeyword.trim()) return;
+    const item = list[idx];
+    const kw = newKeyword.trim().toLowerCase();
+    if (item.keywords.includes(kw)) {
+      setNewKeyword('');
+      return;
+    }
+    const updated = [...list];
+    updated[idx].keywords = [...item.keywords, kw];
+    setList(updated);
+    setNewKeyword('');
+  };
+
+  const handleRemoveKeyword = (idx: number, kwIdx: number) => {
+    const updated = [...list];
+    updated[idx].keywords = updated[idx].keywords.filter((_, i) => i !== kwIdx);
+    setList(updated);
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Left pane: list */}
+      <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-850 text-sm">Danh sách Chuyên môn</h3>
+          <button
+            onClick={onResetDisciplines}
+            className="text-[10px] text-rose-600 hover:underline cursor-pointer"
+          >
+            Khôi phục mặc định
+          </button>
+        </div>
+
+        {/* Add form */}
+        <div className="flex gap-2">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddDiscipline(); }}
+            placeholder="Tên chuyên môn mới..."
+            className="flex-1 px-2.5 py-1.5 text-xs border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleAddDiscipline}
+            className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded hover:bg-slate-800 cursor-pointer"
+          >
+            Thêm
+          </button>
+        </div>
+
+        {/* List items */}
+        <ul className="space-y-1 max-h-[350px] overflow-y-auto pr-1">
+          {list.map((d, i) => (
+            <li
+              key={i}
+              onClick={() => setActiveIdx(i)}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs font-medium transition-colors ${
+                activeIdx === i ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-neutral-50'
+              }`}
+            >
+              <span>{d.name} <span className="text-[10px] text-slate-400 font-normal">({d.keywords.length} kws)</span></span>
+              <button
+                onClick={(e) => handleDeleteDiscipline(i, e)}
+                className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-neutral-100 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Action save */}
+        <button
+          onClick={handleSave}
+          className="w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+        >
+          Lưu thay đổi cấu hình
+        </button>
+      </div>
+
+      {/* Right pane: keywords editor */}
+      <div className="md:col-span-2 bg-white rounded-xl border border-neutral-200 shadow-sm p-5">
+        {activeIdx !== null && list[activeIdx] ? (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Keywords Editor — {list[activeIdx].name}</h3>
+              <p className="text-xs text-slate-400 mt-1">Các từ khóa này được dùng để tự động phân loại chuyên môn cho ứng viên dựa trên nội dung CV.</p>
+            </div>
+
+            {/* Keyword tag input */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold uppercase text-slate-400 block">Thêm từ khóa</label>
+              <div className="flex gap-2 max-w-md">
+                <input
+                  value={newKeyword}
+                  onChange={(e) => setNewKeyword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddKeyword(activeIdx); }}
+                  placeholder="Nhập từ khóa (vd: paut, inspector) rồi ấn Enter..."
+                  className="flex-1 px-3 py-2 text-xs border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  onClick={() => handleAddKeyword(activeIdx)}
+                  className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded hover:bg-slate-800 cursor-pointer"
+                >
+                  Thêm
+                </button>
+              </div>
+            </div>
+
+            {/* Keywords list tags */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold uppercase text-slate-400 block">Từ khóa hiện tại</label>
+              {list[activeIdx].keywords.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">Chưa có từ khóa nào. Auto-detect sẽ bỏ qua chuyên môn này.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {list[activeIdx].keywords.map((kw, kwIdx) => (
+                    <span
+                      key={kwIdx}
+                      className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full border border-neutral-200"
+                    >
+                      {kw}
+                      <button
+                        onClick={() => handleRemoveKeyword(activeIdx, kwIdx)}
+                        className="text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-400 text-xs py-20">
+            Chọn một chuyên môn ở cột bên trái để chỉnh sửa từ khóa.
+          </div>
+        )}
       </div>
     </div>
   );

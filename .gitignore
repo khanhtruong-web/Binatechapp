@@ -20,3 +20,5 @@ dist/
 # Agent config (không push)
 .agent/
 .claude/
+
+.vercel
