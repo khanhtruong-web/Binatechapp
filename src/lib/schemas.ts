@@ -53,6 +53,8 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'medicalExpiry', label: 'Medical/Vision Expiry', type: 'date' },
       { name: 'radiationSafetyExpiry', label: 'Radiation Safety Expiry', type: 'date' },
       { name: 'contractEnd', label: 'Contract End Date', type: 'date' },
+      { name: 'radiationCardNo', label: 'Radiation Safety Card No.', type: 'text' },
+      { name: 'eyeTestDate', label: 'Last Eye Test Date', type: 'date' },
     ]
   },
   'Project Control': {
@@ -124,7 +126,9 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'calCertNo', label: 'Cal. Certificate No.', type: 'text' },
       { name: 'calAgency', label: 'Calibration Agency', type: 'text' },
       { name: 'location', label: 'Location / Custodian', type: 'text' },
-      { name: 'maintenanceLog', label: 'Maintenance Log', type: 'textarea' }
+      { name: 'maintenanceLog', label: 'Maintenance Log', type: 'textarea' },
+      { name: 'isotopeSource', label: 'Isotope Source Type', type: 'select', options: ['N/A', 'Ir-192', 'Se-75', 'Co-60', 'X-Ray Tube'] },
+      { name: 'sourceActivity', label: 'Source Activity (Ci)', type: 'number' }
     ]
   },
   'NDT Reports': {

@@ -18,7 +18,9 @@ import { exportCvsToExcel } from '../lib/excelExport';
 type SubView = 'extract' | 'directory' | 'search' | 'ai' | 'dashboard' | 'disciplines';
 type StagedFile = { file: File; status: 'ready' | 'processing' | 'done' | 'error'; message?: string };
 
-export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin' | 'Manager' | 'Employee' }) {
+import { Lang, t } from '../lib/translations';
+
+export default function HRPersonnel({ userRole = 'Admin', lang = 'vi' }: { userRole?: 'Admin' | 'Manager' | 'Employee'; lang?: Lang }) {
   const [db, setDb] = useState<CvDB>(() => loadCvDB());
   const [view, setView] = useState<SubView>(() => userRole === 'Employee' ? 'directory' : 'dashboard');
   const [staged, setStaged] = useState<StagedFile[]>([]);
@@ -33,19 +35,19 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
   const tabs = useMemo(() => {
     const list: { key: SubView; label: string; icon: any }[] = [];
     if (userRole === 'Employee') {
-      list.push({ key: 'directory', label: 'Personnel Directory', icon: Users });
+      list.push({ key: 'directory', label: t('Personnel Directory', lang), icon: Users });
       return list;
     }
-    list.push({ key: 'dashboard', label: 'HR Dashboard', icon: BarChart2 });
-    list.push({ key: 'extract', label: 'CV Extraction', icon: FileText });
-    list.push({ key: 'directory', label: 'Personnel Directory', icon: Users });
-    list.push({ key: 'search', label: 'Smart Search', icon: Search });
-    list.push({ key: 'ai', label: 'AI Tools', icon: Bot });
+    list.push({ key: 'dashboard', label: t('HR Dashboard', lang), icon: BarChart2 });
+    list.push({ key: 'extract', label: t('CV Extraction', lang), icon: FileText });
+    list.push({ key: 'directory', label: t('Personnel Directory', lang), icon: Users });
+    list.push({ key: 'search', label: t('Smart Search', lang), icon: Search });
+    list.push({ key: 'ai', label: t('AI Tools', lang), icon: Bot });
     if (userRole === 'Admin') {
-      list.push({ key: 'disciplines', label: 'Disciplines Manager', icon: SettingsIcon });
+      list.push({ key: 'disciplines', label: t('Disciplines Manager', lang), icon: SettingsIcon });
     }
     return list;
-  }, [userRole]);
+  }, [userRole, lang]);
 
   useEffect(() => {
     if (!tabs.some(t => t.key === view)) {
@@ -188,12 +190,12 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
         {!hasKey && view === 'extract' && (
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Chưa cấu hình <b>Gemini API Key</b>. Vào tab <b>Settings</b> nhập key để bật trích xuất AI. Ứng dụng vẫn chạy nhưng nút Extract sẽ báo lỗi.</span>
+            <span>{lang === 'vi' ? 'Chưa cấu hình Gemini API Key. Vào tab Settings nhập key để bật trích xuất AI.' : 'Gemini API Key is not configured. Go to Settings tab to enter your key to enable AI extraction.'}</span>
           </div>
         )}
 
         {view === 'dashboard' && (
-          <DashboardView cvs={db.cvs} />
+          <DashboardView cvs={db.cvs} lang={lang} />
         )}
 
         {view === 'extract' && (
@@ -210,15 +212,16 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
             clearStaged={clearStaged}
             onReview={setReviewing}
             onDelete={userRole === 'Admin' ? deleteCv : undefined}
+            lang={lang}
           />
         )}
 
         {view === 'directory' && (
-          <DirectoryView cvs={db.cvs} onReview={setReviewing} onDelete={userRole === 'Admin' ? deleteCv : undefined} />
+          <DirectoryView cvs={db.cvs} onReview={setReviewing} onDelete={userRole === 'Admin' ? deleteCv : undefined} lang={lang} />
         )}
 
         {view === 'search' && (
-          <SmartSearchView cvs={db.cvs} disciplines={db.disciplines} onReview={setReviewing} />
+          <SmartSearchView cvs={db.cvs} disciplines={db.disciplines} onReview={setReviewing} lang={lang} />
         )}
 
         {view === 'ai' && (
@@ -231,6 +234,7 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
                 return d;
               })
             }
+            lang={lang}
           />
         )}
 
@@ -239,12 +243,13 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
             disciplines={db.disciplines}
             onSaveDisciplines={(updatedList) => {
               updateDb((d) => { d.disciplines = updatedList; return d; });
-              toast('Đã lưu cấu hình chuyên môn.', 'ok');
+              toast(lang === 'vi' ? 'Đã lưu cấu hình chuyên môn.' : 'Discipline configuration saved.', 'ok');
             }}
             onResetDisciplines={() => {
               updateDb((d) => { d.disciplines = [...DEFAULT_DISCIPLINES]; return d; });
-              toast('Đã khôi phục cấu hình chuyên môn mặc định.', 'ok');
+              toast(lang === 'vi' ? 'Đã khôi phục cấu hình chuyên môn mặc định.' : 'Default discipline configuration restored.', 'ok');
             }}
+            lang={lang}
           />
         )}
       </div>
@@ -256,6 +261,7 @@ export default function HRPersonnel({ userRole = 'Admin' }: { userRole?: 'Admin'
           onClose={() => setReviewing(null)}
           onSave={saveReview}
           userRole={userRole}
+          lang={lang}
         />
       )}
 
@@ -288,8 +294,9 @@ function ExtractionView(props: {
   clearStaged: () => void;
   onReview: (c: CVRecord) => void;
   onDelete: (id: string) => void;
+  lang?: Lang;
 }) {
-  const { staged, isExtracting, progress, cvs, fileInputRef } = props;
+  const { staged, isExtracting, progress, cvs, fileInputRef, lang = 'vi' } = props;
   return (
     <div className="space-y-6">
       {/* Drop zone */}
@@ -300,8 +307,12 @@ function ExtractionView(props: {
         className="cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/40 transition-colors p-10 text-center"
       >
         <Upload className="mx-auto h-10 w-10 text-slate-400" />
-        <p className="mt-3 text-sm font-medium text-slate-700">Kéo &amp; thả CV vào đây, hoặc bấm để chọn file</p>
-        <p className="text-xs text-slate-500 mt-1">Hỗ trợ .pdf, .docx, .txt — có thể chọn nhiều file cùng lúc</p>
+        <p className="mt-3 text-sm font-medium text-slate-700">
+          {lang === 'vi' ? 'Kéo & thả CV vào đây, hoặc bấm để chọn file' : 'Drag & drop CV files here, or click to browse'}
+        </p>
+        <p className="text-xs text-slate-500 mt-1">
+          {lang === 'vi' ? 'Hỗ trợ .pdf, .docx, .txt — có thể chọn nhiều file cùng lúc' : 'Supports .pdf, .docx, .txt — multiple file uploads supported'}
+        </p>
         <input
           ref={fileInputRef}
           type="file"
@@ -316,14 +327,16 @@ function ExtractionView(props: {
       {staged.length > 0 && (
         <div className="rounded-xl border border-neutral-200 bg-white p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-700">Hàng đợi ({staged.length})</h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              {lang === 'vi' ? `Hàng đợi (${staged.length})` : `Staged Queue (${staged.length})`}
+            </h3>
             <div className="flex gap-2">
               <button
                 onClick={props.clearStaged}
                 disabled={isExtracting}
                 className="text-xs px-3 py-1.5 rounded border border-neutral-300 text-slate-600 hover:bg-neutral-50 disabled:opacity-50"
               >
-                Xoá hàng đợi
+                {lang === 'vi' ? 'Xoá hàng đợi' : 'Clear Queue'}
               </button>
               <button
                 onClick={props.runExtraction}
@@ -331,7 +344,9 @@ function ExtractionView(props: {
                 className="flex items-center gap-2 text-xs px-3 py-1.5 rounded bg-slate-900 text-white font-semibold hover:bg-slate-800 disabled:opacity-60"
               >
                 {isExtracting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                {isExtracting ? `Đang xử lý ${progress.done}/${progress.total}` : 'Run AI Extraction'}
+                {isExtracting 
+                  ? (lang === 'vi' ? `Đang xử lý ${progress.done}/${progress.total}` : `Processing ${progress.done}/${progress.total}`)
+                  : (lang === 'vi' ? 'Chạy trích xuất AI' : 'Run AI Extraction')}
               </button>
             </div>
           </div>
@@ -343,7 +358,7 @@ function ExtractionView(props: {
                   <span className="truncate text-slate-700">{s.file.name}</span>
                 </span>
                 <span className="flex items-center gap-2 flex-shrink-0">
-                  <StatusBadge status={s.status} message={s.message} />
+                  <StatusBadge status={s.status} message={s.message} lang={lang} />
                   {!isExtracting && (
                     <button onClick={() => props.removeStaged(i)} className="text-slate-400 hover:text-rose-500">
                       <X className="w-4 h-4" />
@@ -357,26 +372,31 @@ function ExtractionView(props: {
       )}
 
       {/* Results table */}
-      <CvTable cvs={cvs} onReview={props.onReview} onDelete={props.onDelete} caption="Kết quả trích xuất gần đây" />
+      <CvTable cvs={cvs} onReview={props.onReview} onDelete={props.onDelete} caption={lang === 'vi' ? 'Kết quả trích xuất gần đây' : 'Recent Extraction Results'} lang={lang} />
     </div>
   );
 }
 
-function StatusBadge({ status, message }: { status: StagedFile['status']; message?: string }) {
+function StatusBadge({ status, message, lang = 'vi' }: { status: StagedFile['status']; message?: string; lang?: Lang }) {
   const map: Record<StagedFile['status'], string> = {
     ready: 'bg-slate-200 text-slate-600',
     processing: 'bg-blue-100 text-blue-700',
     done: 'bg-emerald-100 text-emerald-700',
     error: 'bg-rose-100 text-rose-700',
   };
-  const label: Record<StagedFile['status'], string> = { ready: 'Sẵn sàng', processing: 'Đang đọc…', done: message || 'Xong', error: 'Lỗi' };
+  const label: Record<StagedFile['status'], string> = { 
+    ready: lang === 'vi' ? 'Sẵn sàng' : 'Ready', 
+    processing: lang === 'vi' ? 'Đang đọc…' : 'Reading...', 
+    done: message || (lang === 'vi' ? 'Xong' : 'Done'), 
+    error: lang === 'vi' ? 'Lỗi' : 'Error' 
+  };
   return <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${map[status]}`} title={message}>{label[status]}</span>;
 }
 
 // ============================================================================
 // Directory view
 // ============================================================================
-function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete?: (id: string) => void }) {
+function DirectoryView({ cvs, onReview, onDelete, lang = 'vi' }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete?: (id: string) => void; lang?: Lang }) {
   const [q, setQ] = useState('');
   const filtered = cvs.filter((c) =>
     [c.candidateName, c.discipline, c.certifications, c.currentPosition, c.workFields].join(' ').toLowerCase().includes(q.toLowerCase())
@@ -389,7 +409,7 @@ function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview:
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Lọc nhanh theo tên, chuyên môn, chứng chỉ…"
+            placeholder={lang === 'vi' ? 'Lọc nhanh theo tên, chuyên môn, chứng chỉ…' : 'Quick filter by name, discipline, certificate...'}
             className="w-full pl-9 pr-3 py-1.5 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -397,10 +417,17 @@ function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview:
           onClick={() => exportCvsToExcel(filtered)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer"
         >
-          <Download className="w-3.5 h-3.5" /> Xuất Excel danh bạ
+          <Download className="w-3.5 h-3.5" /> 
+          {lang === 'vi' ? 'Xuất Excel danh bạ' : 'Export Personnel Excel'}
         </button>
       </div>
-      <CvTable cvs={filtered} onReview={onReview} onDelete={onDelete} caption={`Danh bạ nhân sự (${filtered.length})`} />
+      <CvTable 
+        cvs={filtered} 
+        onReview={onReview} 
+        onDelete={onDelete} 
+        caption={lang === 'vi' ? `Danh bạ nhân sự (${filtered.length})` : `Personnel Directory (${filtered.length})`} 
+        lang={lang}
+      />
     </div>
   );
 }
@@ -408,7 +435,7 @@ function DirectoryView({ cvs, onReview, onDelete }: { cvs: CVRecord[]; onReview:
 // ============================================================================
 // Smart Search view
 // ============================================================================
-function SmartSearchView({ cvs, disciplines, onReview }: { cvs: CVRecord[]; disciplines: Discipline[]; onReview: (c: CVRecord) => void }) {
+function SmartSearchView({ cvs, disciplines, onReview, lang = 'vi' }: { cvs: CVRecord[]; disciplines: Discipline[]; onReview: (c: CVRecord) => void; lang?: Lang }) {
   const [q, setQ] = useState('');
   const [disc, setDisc] = useState('');
   const [minExp, setMinExp] = useState('');
@@ -436,7 +463,9 @@ function SmartSearchView({ cvs, disciplines, onReview }: { cvs: CVRecord[]; disc
     <div className="space-y-4">
       <div className="rounded-xl border border-neutral-200 bg-white p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="md:col-span-2">
-          <label className="text-[11px] font-semibold uppercase text-slate-500">Keyword</label>
+          <label className="text-[11px] font-semibold uppercase text-slate-500">
+            {lang === 'vi' ? 'Từ khoá' : 'Keyword'}
+          </label>
           <div className="relative mt-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Piping, CSWIP, FPSO…"
@@ -444,30 +473,39 @@ function SmartSearchView({ cvs, disciplines, onReview }: { cvs: CVRecord[]; disc
           </div>
         </div>
         <div>
-          <label className="text-[11px] font-semibold uppercase text-slate-500">Discipline</label>
+          <label className="text-[11px] font-semibold uppercase text-slate-500">
+            {lang === 'vi' ? 'Chuyên môn' : 'Discipline'}
+          </label>
           <select value={disc} onChange={(e) => setDisc(e.target.value)}
             className="mt-1 w-full px-3 py-2 text-sm border border-neutral-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <option value="">All</option>
+            <option value="">{lang === 'vi' ? 'Tất cả' : 'All'}</option>
             {disciplines.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[11px] font-semibold uppercase text-slate-500">Min Exp</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500">
+              {lang === 'vi' ? 'Kn tối thiểu' : 'Min Exp'}
+            </label>
             <input type="number" value={minExp} onChange={(e) => setMinExp(e.target.value)} placeholder="0"
               className="mt-1 w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold uppercase text-slate-500">Max Exp</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500">
+              {lang === 'vi' ? 'Kn tối đa' : 'Max Exp'}
+            </label>
             <input type="number" value={maxExp} onChange={(e) => setMaxExp(e.target.value)} placeholder="99"
               className="mt-1 w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
         </div>
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Filter className="w-3.5 h-3.5" /> {results.length} ứng viên khớp điều kiện
+        <Filter className="w-3.5 h-3.5" /> 
+        {lang === 'vi' 
+          ? `${results.length} ứng viên khớp điều kiện` 
+          : `${results.length} matching candidates`}
       </div>
-      <CvTable cvs={results} onReview={onReview} caption="" />
+      <CvTable cvs={results} onReview={onReview} caption="" lang={lang} />
     </div>
   );
 }
@@ -478,10 +516,11 @@ function SmartSearchView({ cvs, disciplines, onReview }: { cvs: CVRecord[]; disc
 type AiMode = 'spellcheck' | 'review' | 'suggest';
 const CERT_OPTIONS = ['API 510', 'API 570', 'API 653', 'CSWIP 3.1', 'CSWIP 3.2', 'ASNT NDT II', 'PCN', 'NEBOSH', 'IWCF', 'AWS CWI'];
 
-function AiToolsView({ cvs, toast, onSaveReport }: {
+function AiToolsView({ cvs, toast, onSaveReport, lang = 'vi' }: {
   cvs: CVRecord[];
   toast: (t: string, k?: 'ok' | 'warn' | 'err') => void;
   onSaveReport: (cvId: string, report: string) => void;
+  lang?: Lang;
 }) {
   const [mode, setMode] = useState<AiMode>('review');
   const [cvId, setCvId] = useState('');
@@ -501,16 +540,16 @@ function AiToolsView({ cvs, toast, onSaveReport }: {
     try {
       let text = '';
       if (/\.docx?$/i.test(file.name)) {
-        if (!window.mammoth) throw new Error('mammoth chưa nạp');
+        if (!window.mammoth) throw new Error('mammoth not loaded');
         const ab = await file.arrayBuffer();
         text = (await window.mammoth.extractRawText({ arrayBuffer: ab })).value || '';
       } else {
         text = await file.text();
       }
       setJd(text.trim());
-      toast('Đã nạp JD từ file', 'ok');
+      toast(lang === 'vi' ? 'Đã nạp JD từ file' : 'Loaded JD from file', 'ok');
     } catch (e: any) {
-      toast('Lỗi nạp JD: ' + (e?.message || ''), 'err');
+      toast((lang === 'vi' ? 'Lỗi nạp JD: ' : 'Failed to load JD: ') + (e?.message || ''), 'err');
     }
   };
 
@@ -519,11 +558,11 @@ function AiToolsView({ cvs, toast, onSaveReport }: {
     let prompt = '';
     if (mode === 'spellcheck') {
       const cv = cvs.find((c) => c.id === cvId);
-      if (!cv) return toast('Chọn 1 CV trước', 'warn');
+      if (!cv) return toast(lang === 'vi' ? 'Chọn 1 CV trước' : 'Select a CV first', 'warn');
       prompt = `You are a professional proofreader. Review this CV text for English spelling and grammar errors. List each error with its correction as a markdown table (Error | Correction | Note).\n\nCV TEXT:\n${cv.rawText}`;
     } else if (mode === 'review') {
       const cv = cvs.find((c) => c.id === cvId);
-      if (!cv) return toast('Chọn 1 CV trước', 'warn');
+      if (!cv) return toast(lang === 'vi' ? 'Chọn 1 CV trước' : 'Select a CV first', 'warn');
       prompt = `You are an expert Technical Recruiter for the Oil & Gas / Offshore / NDT industry.
 Analyze candidate: ${cv.candidateName} (Exp: ${cv.yearsExp}, Discipline: ${cv.discipline}).
 ${jd ? `Compare specifically against this Job Description:\n"""${jd}"""\n` : ''}${certText ? certText + '\n' : ''}
@@ -537,8 +576,8 @@ Return a structured markdown report with these sections:
 CANDIDATE CV TEXT:
 ${cv.rawText}`;
     } else {
-      if (!jd) return toast('Nhập Job Description để tìm ứng viên phù hợp', 'warn');
-      if (!pool.length) return toast('Chưa có ứng viên approved/reviewed để so khớp', 'warn');
+      if (!jd) return toast(lang === 'vi' ? 'Nhập Job Description để tìm ứng viên phù hợp' : 'Enter Job Description details to match candidates', 'warn');
+      if (!pool.length) return toast(lang === 'vi' ? 'Chưa có ứng viên approved/reviewed để so khớp' : 'No approved candidates in database pool to match', 'warn');
       const summaries = pool
         .map((c) => `[ID:${c.id}] ${c.candidateName} | Exp:${c.yearsExp} | Disc:${c.discipline} | Certs:${c.certifications || 'N/A'} | Skills:${c.keySkills || 'N/A'}`)
         .join('\n');
@@ -561,7 +600,7 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
       setResult(text);
       if (mode === 'review' && cvId) {
         onSaveReport(cvId, text);
-        toast('Đã lưu báo cáo review vào hồ sơ ứng viên', 'ok');
+        toast(lang === 'vi' ? 'Đã lưu báo cáo review vào hồ sơ ứng viên' : 'Saved AI analysis report to candidate profile', 'ok');
       }
     } catch (e: any) {
       toast('AI Error: ' + (e?.message || ''), 'err');
@@ -579,12 +618,12 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
     a.download = `AI_${mode}_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
   };
-  const copyResult = () => { if (result) { navigator.clipboard.writeText(result); toast('Đã copy', 'ok'); } };
+  const copyResult = () => { if (result) { navigator.clipboard.writeText(result); toast(lang === 'vi' ? 'Đã copy' : 'Copied to clipboard', 'ok'); } };
 
   const modeCards: { key: AiMode; label: string; desc: string; icon: typeof Bot }[] = [
-    { key: 'spellcheck', label: 'Spellcheck', desc: 'Soát lỗi chính tả/ngữ pháp tiếng Anh của CV', icon: SpellCheck },
-    { key: 'review', label: 'Deep Review', desc: 'Phân tích ứng viên vs JD + suitability score', icon: ClipboardList },
-    { key: 'suggest', label: 'JD Match', desc: 'Tìm Top-3 ứng viên phù hợp cho 1 JD', icon: Target },
+    { key: 'spellcheck', label: lang === 'vi' ? 'Sửa lỗi chính tả' : 'Spellcheck', desc: lang === 'vi' ? 'Soát lỗi chính tả/ngữ pháp tiếng Anh của CV' : 'Check CV for spelling/grammar errors', icon: SpellCheck },
+    { key: 'review', label: lang === 'vi' ? 'Đánh giá ứng viên' : 'Deep Review', desc: lang === 'vi' ? 'Phân tích ứng viên vs JD + suitability score' : 'Compare candidate suitability against Job Description', icon: ClipboardList },
+    { key: 'suggest', label: lang === 'vi' ? 'Khớp CV ứng viên' : 'JD Match', desc: lang === 'vi' ? 'Tìm Top-3 ứng viên phù hợp cho 1 JD' : 'Find Top 3 best matched candidates from CV pool for a JD', icon: Target },
   ];
 
   return (
@@ -606,13 +645,21 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
       <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
         {mode !== 'suggest' && (
           <div>
-            <label className="text-[11px] font-semibold uppercase text-slate-500">Chọn ứng viên</label>
+            <label className="text-[11px] font-semibold uppercase text-slate-500">
+              {lang === 'vi' ? 'Chọn ứng viên' : 'Select Candidate'}
+            </label>
             <select value={cvId} onChange={(e) => setCvId(e.target.value)}
               className="mt-1 w-full px-3 py-2 text-sm border border-neutral-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value="">— Chọn CV —</option>
+              <option value="">{lang === 'vi' ? '— Chọn CV —' : '— Select CV —'}</option>
               {selectable.map((c) => <option key={c.id} value={c.id}>{c.candidateName} · {c.discipline} · {c.yearsExp}y</option>)}
             </select>
-            {selectable.length === 0 && <p className="text-[11px] text-amber-600 mt-1">Chưa có CV nào đã review/approve. Hãy trích xuất & duyệt CV ở tab CV Extraction.</p>}
+            {selectable.length === 0 && (
+              <p className="text-[11px] text-amber-600 mt-1">
+                {lang === 'vi' 
+                  ? 'Chưa có CV nào đã review/approve. Hãy trích xuất & duyệt CV ở tab CV Extraction.'
+                  : 'No reviewed/approved CVs found. Please extract & approve CVs in the CV Extraction tab first.'}
+              </p>
+            )}
           </div>
         )}
 
@@ -620,13 +667,17 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
           <div>
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold uppercase text-slate-500">Job Description</label>
-              <button onClick={() => jdFileRef.current?.click()} className="text-xs text-blue-600 hover:underline flex items-center gap-1"><Upload className="w-3 h-3" /> Nạp .txt/.docx</button>
+              <button onClick={() => jdFileRef.current?.click()} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                <Upload className="w-3 h-3" /> {lang === 'vi' ? 'Nạp .txt/.docx' : 'Upload .txt/.docx'}
+              </button>
               <input ref={jdFileRef} type="file" accept=".txt,.doc,.docx" className="hidden" onChange={(e) => loadJd(e.target.files?.[0])} />
             </div>
-            <textarea value={jd} onChange={(e) => setJd(e.target.value)} placeholder="Dán JD hoặc nạp file…"
+            <textarea value={jd} onChange={(e) => setJd(e.target.value)} placeholder={lang === 'vi' ? 'Dán JD hoặc nạp file…' : 'Paste Job Description details or upload a file...'}
               className="mt-1 w-full px-3 py-2 text-sm border border-neutral-300 rounded min-h-[110px] focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <div className="mt-2">
-              <div className="text-[11px] font-semibold uppercase text-slate-500 mb-1">Cert filter</div>
+              <div className="text-[11px] font-semibold uppercase text-slate-500 mb-1">
+                {lang === 'vi' ? 'Lọc chứng chỉ bắt buộc' : 'Required certifications'}
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {CERT_OPTIONS.map((c) => (
                   <button key={c} onClick={() => toggleCert(c)}
@@ -638,16 +689,19 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
         )}
 
         <button onClick={run} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded hover:bg-slate-800 disabled:opacity-60">
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded hover:bg-slate-800 disabled:opacity-60 cursor-pointer">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {loading ? 'Đang phân tích…' : 'Chạy AI'}
+          {loading ? (lang === 'vi' ? 'Đang phân tích…' : 'Analyzing...') : (lang === 'vi' ? 'Chạy AI' : 'Run AI')}
         </button>
       </div>
 
       {result && (
         <div className="rounded-xl border border-neutral-200 bg-white">
           <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-200 bg-neutral-50">
-            <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Bot className="w-4 h-4 text-blue-600" /> Kết quả AI</span>
+            <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+              <Bot className="w-4 h-4 text-blue-600" /> 
+              {lang === 'vi' ? 'Kết quả AI' : 'AI Analysis Result'}
+            </span>
             <div className="flex gap-2">
               <button onClick={copyResult} className="text-xs px-2.5 py-1 rounded border border-neutral-300 text-slate-600 hover:bg-neutral-50 flex items-center gap-1"><Copy className="w-3 h-3" /> Copy</button>
               <button onClick={exportTxt} className="text-xs px-2.5 py-1 rounded border border-neutral-300 text-slate-600 hover:bg-neutral-50 flex items-center gap-1"><Download className="w-3 h-3" /> TXT</button>
@@ -664,12 +718,22 @@ Return markdown "## Top 3 Candidates (ranked)". For each: name, match %, why the
 // ============================================================================
 // Shared CV table
 // ============================================================================
-function CvTable({ cvs, onReview, onDelete, caption }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete?: (id: string) => void; caption?: string }) {
+function CvTable({ cvs, onReview, onDelete, caption, lang = 'vi' }: { cvs: CVRecord[]; onReview: (c: CVRecord) => void; onDelete?: (id: string) => void; caption?: string; lang?: Lang }) {
   const statusColor: Record<string, string> = {
     pending_review: 'bg-amber-100 text-amber-700',
     reviewed: 'bg-blue-100 text-blue-700',
     approved: 'bg-emerald-100 text-emerald-700',
   };
+
+  const statusLabel = (status: string) => {
+    if (lang === 'vi') {
+      if (status === 'pending_review') return 'Chờ duyệt';
+      if (status === 'reviewed') return 'Đang xem xét';
+      if (status === 'approved') return 'Đã duyệt';
+    }
+    return status;
+  };
+
   return (
     <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
       {caption ? <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50 text-sm font-semibold text-slate-700">{caption}</div> : null}
@@ -677,17 +741,17 @@ function CvTable({ cvs, onReview, onDelete, caption }: { cvs: CVRecord[]; onRevi
         <table className="w-full text-sm text-left">
           <thead className="text-[11px] text-slate-500 uppercase bg-neutral-50">
             <tr>
-              <th className="px-4 py-2.5">Candidate</th>
-              <th className="px-4 py-2.5">Discipline</th>
-              <th className="px-4 py-2.5">Exp</th>
-              <th className="px-4 py-2.5">Certifications</th>
-              <th className="px-4 py-2.5">Status</th>
-              <th className="px-4 py-2.5 text-right">Action</th>
+              <th className="px-4 py-2.5">{lang === 'vi' ? 'Ứng viên' : 'Candidate'}</th>
+              <th className="px-4 py-2.5">{lang === 'vi' ? 'Chuyên môn' : 'Discipline'}</th>
+              <th className="px-4 py-2.5">{lang === 'vi' ? 'Kinh nghiệm' : 'Exp'}</th>
+              <th className="px-4 py-2.5">{lang === 'vi' ? 'Chứng chỉ' : 'Certifications'}</th>
+              <th className="px-4 py-2.5">{lang === 'vi' ? 'Trạng thái' : 'Status'}</th>
+              <th className="px-4 py-2.5 text-right">{lang === 'vi' ? 'Hành động' : 'Action'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {cvs.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Chưa có dữ liệu.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{lang === 'vi' ? 'Chưa có dữ liệu.' : 'No data available.'}</td></tr>
             ) : (
               cvs.map((c) => (
                 <tr key={c.id} className="hover:bg-blue-50/40">
@@ -698,7 +762,7 @@ function CvTable({ cvs, onReview, onDelete, caption }: { cvs: CVRecord[]; onRevi
                   <td className="px-4 py-3 text-slate-600">{c.discipline}</td>
                   <td className="px-4 py-3 text-slate-600">{c.yearsExp || '-'}</td>
                   <td className="px-4 py-3 text-slate-600 max-w-[240px] truncate" title={c.certifications}>{c.certifications || '-'}</td>
-                  <td className="px-4 py-3"><span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${statusColor[c.status]}`}>{c.status}</span></td>
+                  <td className="px-4 py-3"><span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${statusColor[c.status]}`}>{statusLabel(c.status)}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
                       <button onClick={() => onReview(c)} title="Review & Edit"
@@ -722,8 +786,8 @@ function CvTable({ cvs, onReview, onDelete, caption }: { cvs: CVRecord[]; onRevi
 // ============================================================================
 // Review modal (side-by-side: original text | AI-extracted fields)
 // ============================================================================
-function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
-  record: CVRecord; disciplines: Discipline[]; onClose: () => void; onSave: (r: CVRecord, approve: boolean) => void; userRole?: 'Admin' | 'Manager' | 'Employee';
+function ReviewModal({ record, disciplines, onClose, onSave, userRole, lang = 'vi' }: {
+  record: CVRecord; disciplines: Discipline[]; onClose: () => void; onSave: (r: CVRecord, approve: boolean) => void; userRole?: 'Admin' | 'Manager' | 'Employee'; lang?: Lang;
 }) {
   const [form, setForm] = useState<CVRecord>({ ...record });
   const set = (k: keyof CVRecord, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -742,7 +806,9 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
       <div className="bg-white rounded-2xl w-full max-w-6xl h-[88vh] flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Review &amp; Edit — {form.candidateName}</h3>
+            <h3 className="text-lg font-bold text-slate-800">
+              {lang === 'vi' ? 'Duyệt & Chỉnh sửa — ' : 'Review & Edit — '}{form.candidateName}
+            </h3>
             <p className="text-[11px] text-slate-400">{form.fileName}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded hover:bg-neutral-100 text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
@@ -752,24 +818,30 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
           {/* Left: original text */}
           <div className="border-r border-neutral-200 flex flex-col min-h-0">
             <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-200 text-[11px] font-semibold uppercase text-slate-500 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> Original CV Text
+              <FileText className="w-3.5 h-3.5" /> 
+              {lang === 'vi' ? 'Nội dung văn bản CV' : 'Original CV Text'}
             </div>
-            <pre className="flex-1 overflow-auto p-4 text-xs leading-relaxed text-slate-600 whitespace-pre-wrap font-sans">{form.rawText || '(Không có nội dung văn bản)'}</pre>
+            <pre className="flex-1 overflow-auto p-4 text-xs leading-relaxed text-slate-600 whitespace-pre-wrap font-sans">
+              {form.rawText || (lang === 'vi' ? '(Không có nội dung văn bản)' : '(No text content)')}
+            </pre>
           </div>
           {/* Right: fields */}
           <div className="flex flex-col min-h-0">
             <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 text-[11px] font-semibold uppercase text-blue-600 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> AI Extracted Data
+              <Sparkles className="w-3.5 h-3.5" /> 
+              {lang === 'vi' ? 'Dữ liệu trích xuất AI' : 'AI Extracted Data'}
             </div>
             <div className="flex-1 overflow-auto p-5 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                {field('Candidate Name', 'candidateName')}
-                {field('Years of Experience', 'yearsExp')}
+                {field(lang === 'vi' ? 'Họ tên ứng viên' : 'Candidate Name', 'candidateName')}
+                {field(lang === 'vi' ? 'Số năm kinh nghiệm' : 'Years of Experience', 'yearsExp')}
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {field('Current Position', 'currentPosition', <Briefcase className="w-3 h-3" />)}
+                {field(lang === 'vi' ? 'Vị trí hiện tại' : 'Current Position', 'currentPosition', <Briefcase className="w-3 h-3" />)}
                 <div>
-                  <label className="text-[11px] font-semibold uppercase text-slate-500 mb-1 block">Discipline</label>
+                  <label className="text-[11px] font-semibold uppercase text-slate-500 mb-1 block">
+                    {lang === 'vi' ? 'Chuyên môn' : 'Discipline'}
+                  </label>
                   <select value={form.discipline} onChange={(e) => set('discipline', e.target.value)}
                     disabled={userRole === 'Employee'}
                     className="w-full px-3 py-2 text-sm border border-neutral-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-neutral-50 disabled:text-slate-500">
@@ -779,18 +851,20 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
                   </select>
                 </div>
               </div>
-              {field('Education', 'education', <GraduationCap className="w-3 h-3" />)}
-              {field('Market Industries', 'workFields')}
-              {field('Specialized Niche', 'specializedField')}
-              {field('Certifications', 'certifications', <Award className="w-3 h-3" />)}
-              {field('Key Skills', 'keySkills')}
+              {field(lang === 'vi' ? 'Học vấn' : 'Education', 'education', <GraduationCap className="w-3 h-3" />)}
+              {field(lang === 'vi' ? 'Lĩnh vực hoạt động' : 'Market Industries', 'workFields')}
+              {field(lang === 'vi' ? 'Lĩnh vực chuyên sâu' : 'Specialized Niche', 'specializedField')}
+              {field(lang === 'vi' ? 'Chứng chỉ' : 'Certifications', 'certifications', <Award className="w-3 h-3" />)}
+              {field(lang === 'vi' ? 'Kỹ năng cốt lõi' : 'Key Skills', 'keySkills')}
               <div className="grid grid-cols-2 gap-3">
-                {field('Contact', 'contactInfo', <Mail className="w-3 h-3" />)}
-                {field('Phone', 'phone', <Phone className="w-3 h-3" />)}
+                {field(lang === 'vi' ? 'Email liên hệ' : 'Contact', 'contactInfo', <Mail className="w-3 h-3" />)}
+                {field(lang === 'vi' ? 'Số điện thoại' : 'Phone', 'phone', <Phone className="w-3 h-3" />)}
               </div>
-              {field('Languages', 'languages')}
+              {field(lang === 'vi' ? 'Ngoại ngữ' : 'Languages', 'languages')}
               <div>
-                <label className="text-[11px] font-semibold uppercase text-blue-600 mb-1 block">AI Strategic Profile</label>
+                <label className="text-[11px] font-semibold uppercase text-blue-600 mb-1 block">
+                  {lang === 'vi' ? 'Tóm tắt năng lực (AI)' : 'AI Strategic Profile'}
+                </label>
                 <textarea value={form.aiSummary} onChange={(e) => set('aiSummary', e.target.value)}
                   disabled={userRole === 'Employee'}
                   className="w-full px-3 py-2 text-sm border border-blue-200 bg-blue-50/40 rounded min-h-[90px] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-75" />
@@ -801,7 +875,9 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
 
         <div className="flex items-center justify-between px-6 py-3 border-t border-neutral-200 bg-white">
           <span className="text-[11px] text-slate-400 uppercase font-semibold">
-            {userRole === 'Employee' ? 'Chế độ chỉ xem (Read-only)' : 'Verification Pending · Review AI data'}
+            {userRole === 'Employee' 
+              ? (lang === 'vi' ? 'Chế độ chỉ xem (Read-only)' : 'Read-only mode') 
+              : (lang === 'vi' ? 'Chờ xác thực · Duyệt dữ liệu AI' : 'Verification Pending · Review AI data')}
           </span>
           <div className="flex gap-2">
             <button
@@ -812,14 +888,19 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
             </button>
             {userRole === 'Employee' ? (
               <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-white bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                Đóng / Close
+                {lang === 'vi' ? 'Đóng' : 'Close'}
               </button>
             ) : (
               <>
-                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-neutral-100 rounded cursor-pointer">Discard</button>
-                <button onClick={() => onSave(form, false)} className="px-4 py-2 text-sm font-semibold text-slate-700 border border-neutral-300 rounded hover:bg-neutral-50 cursor-pointer">Keep Changes</button>
+                <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-neutral-100 rounded cursor-pointer">
+                  {lang === 'vi' ? 'Hủy bỏ' : 'Discard'}
+                </button>
+                <button onClick={() => onSave(form, false)} className="px-4 py-2 text-sm font-semibold text-slate-700 border border-neutral-300 rounded hover:bg-neutral-50 cursor-pointer">
+                  {lang === 'vi' ? 'Lưu thay đổi' : 'Keep Changes'}
+                </button>
                 <button onClick={() => onSave(form, true)} className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-white bg-slate-900 rounded hover:bg-slate-800 cursor-pointer">
-                  <Check className="w-4 h-4" /> Approve &amp; Commit
+                  <Check className="w-4 h-4" /> 
+                  {lang === 'vi' ? 'Phê duyệt & Lưu' : 'Approve & Commit'}
                 </button>
               </>
             )}
@@ -830,10 +911,7 @@ function ReviewModal({ record, disciplines, onClose, onSave, userRole }: {
   );
 }
 
-// ============================================================================
-// HR Dashboard & Reports view
-// ============================================================================
-function DashboardView({ cvs }: { cvs: CVRecord[] }) {
+function DashboardView({ cvs, lang = 'vi' }: { cvs: CVRecord[]; lang?: Lang }) {
   const stats = useMemo(() => {
     const total = cvs.length;
     const pending = cvs.filter((c) => c.status === 'pending_review').length;
@@ -854,20 +932,20 @@ function DashboardView({ cvs }: { cvs: CVRecord[] }) {
   const disciplineData = useMemo(() => {
     const counts: Record<string, number> = {};
     cvs.forEach(c => {
-      const d = c.discipline || 'Chưa phân loại';
+      const d = c.discipline || (lang === 'vi' ? 'Chưa phân loại' : 'Unclassified');
       counts[d] = (counts[d] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [cvs]);
+  }, [cvs, lang]);
 
   // Experience breakdown (Bar Chart)
   const experienceData = useMemo(() => {
     const ranges = [
-      { name: '0 - 3 năm', value: 0 },
-      { name: '3 - 5 năm', value: 0 },
-      { name: '5 - 10 năm', value: 0 },
-      { name: '10 - 15 năm', value: 0 },
-      { name: 'Trên 15 năm', value: 0 },
+      { name: lang === 'vi' ? '0 - 3 năm' : '0 - 3 yrs', value: 0 },
+      { name: lang === 'vi' ? '3 - 5 năm' : '3 - 5 yrs', value: 0 },
+      { name: lang === 'vi' ? '5 - 10 năm' : '5 - 10 yrs', value: 0 },
+      { name: lang === 'vi' ? '10 - 15 năm' : '10 - 15 yrs', value: 0 },
+      { name: lang === 'vi' ? 'Trên 15 năm' : '15+ yrs', value: 0 },
     ];
     cvs.forEach(c => {
       const years = parseYears(c.yearsExp);
@@ -878,7 +956,7 @@ function DashboardView({ cvs }: { cvs: CVRecord[] }) {
       else ranges[4].value++;
     });
     return ranges.filter(r => r.value > 0);
-  }, [cvs]);
+  }, [cvs, lang]);
 
   const COLORS = ['#2563EB', '#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
 
@@ -887,29 +965,43 @@ function DashboardView({ cvs }: { cvs: CVRecord[] }) {
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <div className="text-[11px] font-semibold text-slate-450 uppercase">Tổng hồ sơ</div>
+          <div className="text-[11px] font-semibold text-slate-450 uppercase">
+            {lang === 'vi' ? 'Tổng hồ sơ CV' : 'Total CVs'}
+          </div>
           <div className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</div>
         </div>
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <div className="text-[11px] font-semibold text-slate-455 uppercase">Đang chờ duyệt</div>
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">
+            {lang === 'vi' ? 'Đang chờ duyệt' : 'Pending Review'}
+          </div>
           <div className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</div>
         </div>
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <div className="text-[11px] font-semibold text-slate-455 uppercase">Đã duyệt (Approved)</div>
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">
+            {lang === 'vi' ? 'Đã phê duyệt' : 'Approved'}
+          </div>
           <div className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</div>
         </div>
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <div className="text-[11px] font-semibold text-slate-455 uppercase">Kinh nghiệm trung bình</div>
-          <div className="text-2xl font-bold text-blue-600 mt-1">{stats.avgExp} năm</div>
+          <div className="text-[11px] font-semibold text-slate-455 uppercase">
+            {lang === 'vi' ? 'Kinh nghiệm trung bình' : 'Avg Experience'}
+          </div>
+          <div className="text-2xl font-bold text-blue-600 mt-1">
+            {stats.avgExp} {lang === 'vi' ? 'năm' : 'yrs'}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Discipline Distribution */}
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <h3 className="font-semibold text-slate-800 mb-4">Phân bổ theo Chuyên môn (Discipline)</h3>
+          <h3 className="font-semibold text-slate-800 mb-4">
+            {lang === 'vi' ? 'Phân bổ theo Chuyên môn (Discipline)' : 'Discipline Distribution'}
+          </h3>
           {disciplineData.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">Chưa có dữ liệu chuyên môn</div>
+            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">
+              {lang === 'vi' ? 'Chưa có dữ liệu chuyên môn' : 'No discipline data available'}
+            </div>
           ) : (
             <div className="flex flex-col md:flex-row items-center justify-center gap-6">
               <div className="w-full md:w-1/2 h-64">
@@ -947,9 +1039,13 @@ function DashboardView({ cvs }: { cvs: CVRecord[] }) {
 
         {/* Experience ranges */}
         <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
-          <h3 className="font-semibold text-slate-800 mb-4">Phân bổ năm kinh nghiệm</h3>
+          <h3 className="font-semibold text-slate-800 mb-4">
+            {lang === 'vi' ? 'Phân bổ năm kinh nghiệm' : 'Experience Distribution'}
+          </h3>
           {experienceData.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">Chưa có dữ liệu kinh nghiệm</div>
+            <div className="h-64 flex items-center justify-center text-slate-400 text-sm">
+              {lang === 'vi' ? 'Chưa có dữ liệu kinh nghiệm' : 'No experience data available'}
+            </div>
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -975,11 +1071,13 @@ function DashboardView({ cvs }: { cvs: CVRecord[] }) {
 function DisciplinesView({
   disciplines,
   onSaveDisciplines,
-  onResetDisciplines
+  onResetDisciplines,
+  lang = 'vi'
 }: {
   disciplines: Discipline[];
   onSaveDisciplines: (d: Discipline[]) => void;
   onResetDisciplines: () => void;
+  lang?: Lang;
 }) {
   const [list, setList] = useState<Discipline[]>(() => JSON.parse(JSON.stringify(disciplines)));
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
@@ -997,7 +1095,7 @@ function DisciplinesView({
   const handleAddDiscipline = () => {
     if (!newName.trim()) return;
     if (list.some(d => d.name.toLowerCase() === newName.trim().toLowerCase())) {
-      alert('Tên chuyên môn đã tồn tại!');
+      alert(lang === 'vi' ? 'Tên chuyên môn đã tồn tại!' : 'Discipline already exists!');
       return;
     }
     const updated = [...list, { name: newName.trim(), keywords: [] }];
@@ -1008,7 +1106,10 @@ function DisciplinesView({
 
   const handleDeleteDiscipline = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(`Xoá chuyên môn "${list[idx].name}"? Các hồ sơ đã gán chuyên môn này vẫn giữ nguyên nhưng auto-detect sẽ bỏ qua.`)) return;
+    const conf = lang === 'vi'
+      ? `Xoá chuyên môn "${list[idx].name}"? Các hồ sơ đã gán chuyên môn này vẫn giữ nguyên nhưng auto-detect sẽ bỏ qua.`
+      : `Delete discipline "${list[idx].name}"? Candidates already assigned this discipline will remain unaffected, but auto-detect will ignore it.`;
+    if (!window.confirm(conf)) return;
     const updated = list.filter((_, i) => i !== idx);
     setList(updated);
     if (activeIdx === idx) setActiveIdx(null);
@@ -1040,12 +1141,14 @@ function DisciplinesView({
       {/* Left pane: list */}
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-850 text-sm">Danh sách Chuyên môn</h3>
+          <h3 className="font-semibold text-slate-850 text-sm">
+            {lang === 'vi' ? 'Danh sách Chuyên môn' : 'Disciplines List'}
+          </h3>
           <button
             onClick={onResetDisciplines}
             className="text-[10px] text-rose-600 hover:underline cursor-pointer"
           >
-            Khôi phục mặc định
+            {lang === 'vi' ? 'Khôi phục mặc định' : 'Reset to Default'}
           </button>
         </div>
 
@@ -1055,14 +1158,14 @@ function DisciplinesView({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddDiscipline(); }}
-            placeholder="Tên chuyên môn mới..."
+            placeholder={lang === 'vi' ? 'Tên chuyên môn mới...' : 'New discipline name...'}
             className="flex-1 px-2.5 py-1.5 text-xs border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <button
             onClick={handleAddDiscipline}
             className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded hover:bg-slate-800 cursor-pointer"
           >
-            Thêm
+            {lang === 'vi' ? 'Thêm' : 'Add'}
           </button>
         </div>
 
@@ -1092,7 +1195,7 @@ function DisciplinesView({
           onClick={handleSave}
           className="w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
         >
-          Lưu thay đổi cấu hình
+          {lang === 'vi' ? 'Lưu thay đổi cấu hình' : 'Save Configuration'}
         </button>
       </div>
 
@@ -1101,35 +1204,47 @@ function DisciplinesView({
         {activeIdx !== null && list[activeIdx] ? (
           <div className="space-y-4">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm">Keywords Editor — {list[activeIdx].name}</h3>
-              <p className="text-xs text-slate-400 mt-1">Các từ khóa này được dùng để tự động phân loại chuyên môn cho ứng viên dựa trên nội dung CV.</p>
+              <h3 className="font-bold text-slate-800 text-sm">
+                {lang === 'vi' ? `Trình soạn thảo từ khóa — ` : `Keywords Editor — `}{list[activeIdx].name}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                {lang === 'vi' 
+                  ? 'Các từ khóa này được dùng để tự động phân loại chuyên môn cho ứng viên dựa trên nội dung CV.'
+                  : 'These keywords are used to automatically detect and assign candidate disciplines based on CV contents.'}
+              </p>
             </div>
 
             {/* Keyword tag input */}
             <div className="space-y-2">
-              <label className="text-[11px] font-semibold uppercase text-slate-400 block">Thêm từ khóa</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-400 block">
+                {lang === 'vi' ? 'Thêm từ khóa' : 'Add keyword'}
+              </label>
               <div className="flex gap-2 max-w-md">
                 <input
                   value={newKeyword}
                   onChange={(e) => setNewKeyword(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAddKeyword(activeIdx); }}
-                  placeholder="Nhập từ khóa (vd: paut, inspector) rồi ấn Enter..."
+                  placeholder={lang === 'vi' ? 'Nhập từ khóa (vd: paut, inspector) rồi ấn Enter...' : 'Enter a keyword (e.g. paut, inspector) and press Enter...'}
                   className="flex-1 px-3 py-2 text-xs border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   onClick={() => handleAddKeyword(activeIdx)}
                   className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded hover:bg-slate-800 cursor-pointer"
                 >
-                  Thêm
+                  {lang === 'vi' ? 'Thêm' : 'Add'}
                 </button>
               </div>
             </div>
 
             {/* Keywords list tags */}
             <div className="space-y-2">
-              <label className="text-[11px] font-semibold uppercase text-slate-400 block">Từ khóa hiện tại</label>
+              <label className="text-[11px] font-semibold uppercase text-slate-400 block">
+                {lang === 'vi' ? 'Từ khóa hiện tại' : 'Current keywords'}
+              </label>
               {list[activeIdx].keywords.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">Chưa có từ khóa nào. Auto-detect sẽ bỏ qua chuyên môn này.</p>
+                <p className="text-xs text-slate-400 italic">
+                  {lang === 'vi' ? 'Chưa có từ khóa nào. Auto-detect sẽ bỏ qua chuyên môn này.' : 'No keywords defined. Auto-detect will ignore this discipline.'}
+                </p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {list[activeIdx].keywords.map((kw, kwIdx) => (
@@ -1152,7 +1267,7 @@ function DisciplinesView({
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-slate-400 text-xs py-20">
-            Chọn một chuyên môn ở cột bên trái để chỉnh sửa từ khóa.
+            {lang === 'vi' ? 'Chọn một chuyên môn ở cột bên trái để chỉnh sửa từ khóa.' : 'Select a discipline from the left panel to edit its keywords.'}
           </div>
         )}
       </div>

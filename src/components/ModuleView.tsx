@@ -5,12 +5,15 @@ import { ModuleSchema, FieldDef } from '../lib/types';
 import ImportModal from './ImportModal';
 import { getCachedToken } from '../lib/authCache';
 
+import { Lang, t } from '../lib/translations';
+
 interface ModuleViewProps {
   schema: ModuleSchema;
   userRole?: 'Admin' | 'Manager' | 'Employee';
+  lang?: Lang;
 }
 
-export default function ModuleView({ schema, userRole }: ModuleViewProps) {
+export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleViewProps) {
   const [data, setData] = useState<any[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -219,7 +222,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
               className="flex items-center space-x-2 bg-white hover:bg-neutral-50 px-3 py-1.5 rounded border border-neutral-300 text-sm font-medium transition-colors shadow-sm"
             >
               <Upload className="w-4 h-4 text-neutral-500" />
-              <span>Import CSV/Excel</span>
+              <span>{t('Import CSV/Excel', lang)}</span>
             </button>
           )}
           <button
@@ -227,7 +230,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
             className="flex items-center space-x-2 bg-white hover:bg-neutral-50 px-3 py-1.5 rounded border border-neutral-300 text-sm font-medium transition-colors shadow-sm"
           >
             <Download className="w-4 h-4 text-neutral-500" />
-            <span>Export Excel</span>
+            <span>{t('Export Excel', lang)}</span>
           </button>
           {userRole !== 'Employee' && (
             <button 
@@ -238,7 +241,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
               className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
-              <span>New Record</span>
+              <span>{t('New Record', lang)}</span>
             </button>
           )}
         </div>
@@ -252,7 +255,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input 
                 type="text" 
-                placeholder="Global Search..." 
+                placeholder={lang === 'vi' ? 'Tìm kiếm nhanh...' : 'Global Search...'} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -267,7 +270,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
               }`}
             >
               <Filter className="w-4 h-4" />
-              <span>Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}</span>
+              <span>{lang === 'vi' ? 'Bộ lọc' : 'Filters'}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}</span>
             </button>
           </div>
 
@@ -282,7 +285,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
                     onChange={(e) => setFilters(prev => ({ ...prev, [field.name]: e.target.value }))}
                     className="w-full px-2 py-1.5 text-sm border border-neutral-300 rounded shadow-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">All</option>
+                    <option value="">{lang === 'vi' ? 'Tất cả' : 'All'}</option>
                     {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
@@ -293,7 +296,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
                   className="flex items-center space-x-1 text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1.5"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Clear all</span>
+                  <span>{lang === 'vi' ? 'Xóa bộ lọc' : 'Clear all'}</span>
                 </button>
               )}
             </div>
@@ -302,10 +305,18 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
           {/* Connection Error Notification */}
           {(fetchError || isOfflineMode) && (
             <div className="bg-amber-50 border-b border-amber-200 p-3.5 text-xs text-amber-800 flex items-start gap-2">
-              <span className="font-bold flex-shrink-0 bg-amber-200 text-amber-900 px-1 py-0.5 rounded leading-none">OFFLINE MODE</span>
+              <span className="font-bold flex-shrink-0 bg-amber-200 text-amber-900 px-1 py-0.5 rounded leading-none">
+                {lang === 'vi' ? 'NGOẠI TUYẾN' : 'OFFLINE MODE'}
+              </span>
               <div>
-                <p className="font-medium">{fetchError || 'Operating on Local Server Database Fallback (Cloud Synced database is inactive)'}</p>
-                <p className="text-[10px] text-amber-700 mt-0.5">The application remains fully functional. Records are securely saved locally on the Node.js server. To activate full Google Sheets real-time cloud sync, please provide your &ldquo;Google Sheets Database ID&rdquo; and &ldquo;Service Account JSON&rdquo; inside the <strong>Settings</strong> configuration panel.</p>
+                <p className="font-medium">
+                  {fetchError || (lang === 'vi' ? 'Đang hoạt động với cơ sở dữ liệu dự phòng cục bộ (Không thể đồng bộ đám mây)' : 'Operating on Local Server Database Fallback (Cloud Synced database is inactive)')}
+                </p>
+                <p className="text-[10px] text-amber-700 mt-0.5">
+                  {lang === 'vi' 
+                    ? 'Ứng dụng vẫn hoạt động đầy đủ. Các bản ghi được lưu trữ an toàn cục bộ trên máy chủ Node.js. Để kích hoạt tính năng đồng bộ đám mây Google Sheets thời gian thực, vui lòng cung cấp "Google Sheets Database ID" và "Service Account JSON" trong mục Cấu hình Hệ thống.'
+                    : 'The application remains fully functional. Records are securely saved locally on the Node.js server. To activate full Google Sheets real-time cloud sync, please provide your "Google Sheets Database ID" and "Service Account JSON" inside the Settings configuration panel.'}
+                </p>
               </div>
             </div>
           )}
@@ -314,7 +325,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
           {isLoadingRows && (
             <div className="bg-blue-50/50 border-b border-blue-100 px-4 py-2 text-xs text-blue-700 flex items-center gap-2 font-medium">
               <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span>Đang đồng bộ dữ liệu với Google Sheets...</span>
+              <span>{lang === 'vi' ? 'Đang đồng bộ dữ liệu với Google Sheets...' : 'Syncing database with Google Sheets...'}</span>
             </div>
           )}
           
@@ -342,7 +353,7 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
                 {filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={columns.length} className="px-6 py-8 text-center text-neutral-500">
-                      No records found.
+                      {lang === 'vi' ? 'Không có bản ghi nào được tìm thấy.' : 'No records found.'}
                     </td>
                   </tr>
                 ) : (
@@ -373,14 +384,14 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
           <div className="w-[45%] flex flex-col bg-neutral-50 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-10 relative">
             <div className="p-4 border-b border-neutral-200 bg-white flex justify-between items-center">
               <h3 className="font-semibold text-neutral-800">
-                {isEditing ? (selectedRecord && selectedRecord[schema.primaryKey] ? `Edit Record` : `New Record`) : `Record Details`}
+                {isEditing ? (selectedRecord && selectedRecord[schema.primaryKey] ? t('Edit Record', lang) : t('New Record', lang)) : t('Record Details', lang)}
               </h3>
               {userRole !== 'Employee' && !isEditing && (
                 <button 
                   onClick={() => setIsEditing(true)}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
                 >
-                  Edit Option
+                  {t('Edit Option', lang)}
                 </button>
               )}
             </div>
@@ -465,11 +476,11 @@ export default function ModuleView({ schema, userRole }: ModuleViewProps) {
                     }}
                     className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded shadow-sm hover:bg-neutral-50 transition-colors"
                   >
-                    Cancel
+                    {t('Cancel', lang)}
                   </button>
                   <button type="submit" className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded shadow-sm hover:bg-blue-700 transition-colors">
                     <Save className="w-4 h-4" />
-                    <span>Save to Google Sheets</span>
+                    <span>{t('Save to Google Sheets', lang)}</span>
                   </button>
                 </div>
               )}

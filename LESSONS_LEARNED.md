@@ -99,4 +99,14 @@
 
 ---
 
-_Cập nhật lần cuối: Phase 2 (AI Tools: Spellcheck / Deep Review + suitability score / JD Match). Phase 1 đã verify `tsc` strict PASS; Phase 2 verify bằng đọc trực tiếp bản D:\ (mount sandbox đóng băng — xem LL-16), gate cuối là `npm run build` cục bộ._
+## 🔴 Nhóm 6 — Đa ngôn ngữ & Phân quyền UI
+
+### LL-17. Đồng bộ trạng thái ngôn ngữ toàn cục (Global Language State)
+- **Triệu chứng:** Thay đổi ngôn ngữ ở thanh điều hướng (Navbar) nhưng các tab nội dung bên trong không chuyển đổi tức thì hoặc bị reset khi chuyển tab.
+- **Nguyên nhân gốc:** Trạng thái ngôn ngữ bị lưu lẻ tẻ ở từng component con hoặc không đồng bộ qua prop/context.
+- **Khắc phục:** Định nghĩa kiểu `type Lang = 'vi' | 'en'` tập trung tại `src/lib/schemas.ts`, truyền prop `lang` từ `App.tsx` (state gốc) xuống các view/component con (`HRPersonnel`, `QuotationGenerator`, `ModuleView`). Chuyển đổi ngôn ngữ cập nhật state toàn cục và đồng bộ tất cả giao diện tức thời.
+- **Quy tắc phòng ngừa:** Luôn giữ một nguồn sự thật (Single Source of Truth) cho ngôn ngữ toàn hệ thống. Mọi component mới phải thiết kế nhận prop `lang` để hỗ trợ đa ngôn ngữ.
+
+---
+
+_Cập nhật lần cuối: Phase 2 hoàn thành nâng cấp Đa ngôn ngữ (English/Vietnamese), Phân quyền UI theo vai trò (Admin/Manager/Employee), cải tiến giao diện Đăng nhập cao cấp, và bản địa hóa Công cụ báo giá NDT. Build production cục bộ thành công 100%._

@@ -12,6 +12,7 @@ import Settings from './components/Settings';
 import QuotationGenerator from './components/QuotationGenerator';
 import HRPersonnel from './components/HRPersonnel';
 import { MODULE_SCHEMAS } from './lib/schemas';
+import { Lang, t, localizeSchema } from './lib/translations';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,6 +20,13 @@ export default function App() {
   const [userRole, setUserRole] = useState<'Admin' | 'Manager' | 'Employee'>(
     (localStorage.getItem('BINATECH_USER_ROLE') as any) || 'Admin'
   );
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('BINATECH_LANG') as Lang) || 'vi');
+
+  const toggleLang = () => {
+    const next = lang === 'vi' ? 'en' : 'vi';
+    setLang(next);
+    localStorage.setItem('BINATECH_LANG', next);
+  };
   
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [showSyncModal, setShowSyncModal] = useState(false);
@@ -28,7 +36,7 @@ export default function App() {
     return <Login onLogin={(info) => {
       setUserInfo({ ...info, role: userRole });
       setIsAuthenticated(true);
-    }} />;
+    }} lang={lang} toggleLang={toggleLang} />;
   }
 
   const allTabs = [
@@ -50,15 +58,23 @@ export default function App() {
     tabs.push({ name: 'Settings', icon: SettingsIcon, roles: ['Admin'] });
   }
 
-  const activeSchema = MODULE_SCHEMAS[activeTab];
+  const activeSchema = activeTab ? localizeSchema(MODULE_SCHEMAS[activeTab], lang) : null;
 
   return (
     <div className="flex h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-20">
-        <div className="p-6 border-b border-slate-700">
-          <h1 className="text-2xl font-bold tracking-tight text-blue-400">Binatech NDT</h1>
-          <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ERP Management System</p>
+        <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-blue-400">Binatech NDT</h1>
+            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ERP Management System</p>
+          </div>
+          <button 
+            onClick={toggleLang}
+            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-750 text-xs font-bold text-slate-300 cursor-pointer flex-shrink-0"
+          >
+            {lang === 'vi' ? 'EN' : 'VI'}
+          </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-3">
@@ -76,7 +92,7 @@ export default function App() {
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    <span>{tab.name}</span>
+                    <span>{t(tab.name, lang)}</span>
                   </button>
                 </li>
               );
@@ -111,14 +127,14 @@ export default function App() {
             className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-900/50 py-2 rounded-lg transition-colors text-sm font-medium"
           >
             <Bot className="w-4 h-4" />
-            <span>AI Assistant</span>
+            <span>{t('AI Assistant', lang)}</span>
           </button>
           <button 
             onClick={() => setIsAuthenticated(false)}
             className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-rose-400 py-2 rounded-lg transition-colors text-sm font-medium"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>{t('Sign Out', lang)}</span>
           </button>
         </div>
       </aside>
@@ -127,15 +143,15 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Dynamic Content Container */}
         {activeTab === 'Dashboard' ? (
-          <Dashboard onSync={() => setShowSyncModal(true)} />
+          <Dashboard onSync={() => setShowSyncModal(true)} lang={lang} />
         ) : activeTab === 'Quotation Engine' ? (
-          <QuotationGenerator />
+          <QuotationGenerator lang={lang} />
         ) : activeTab === 'Settings' ? (
-          <Settings userInfo={userInfo} />
+          <Settings userInfo={userInfo} lang={lang} />
         ) : activeTab === 'HR (Personnel)' ? (
-          <HRPersonnel userRole={userRole} />
+          <HRPersonnel userRole={userRole} lang={lang} />
         ) : activeSchema ? (
-          <ModuleView schema={activeSchema} key={activeSchema.id} userRole={userRole} />
+          <ModuleView schema={activeSchema} key={activeSchema.id} userRole={userRole} lang={lang} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-slate-500">
             Module Configuration Not Found

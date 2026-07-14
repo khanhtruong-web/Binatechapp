@@ -5,7 +5,9 @@ import { setCachedToken } from '../lib/authCache';
 
 import firebaseConfig from '../../firebase-applet-config.json';
 
-export default function Login({ onLogin }: { onLogin: (userInfo: any) => void }) {
+import { Lang, t } from '../lib/translations';
+
+export default function Login({ onLogin, lang = 'vi', toggleLang }: { onLogin: (userInfo: any) => void; lang?: Lang; toggleLang?: () => void }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -122,7 +124,9 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
 
           {/* Tagline — hidden on mobile for compact header */}
           <p className="hidden lg:block text-slate-400 text-sm leading-relaxed mb-8">
-            Hệ thống quản lý tổng thể cho ngành NDT & Kiểm tra không phá hủy — tối ưu quy trình, nâng cao hiệu suất.
+            {lang === 'vi' 
+              ? 'Hệ thống quản lý tổng thể cho ngành NDT & Kiểm tra không phá hủy — tối ưu quy trình, nâng cao hiệu suất.'
+              : 'Integrated Enterprise Resource Planning for NDT & Welding Inspection services — optimize process, boost efficiency.'}
           </p>
 
           {/* Version badge */}
@@ -136,8 +140,20 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
       {/* ============================================
           RIGHT SIDE — Login Form
           ============================================ */}
-      <div className="flex-1 gradient-bg flex items-center justify-center p-6 sm:p-8 lg:p-12">
-        <div className="w-full max-w-md">
+      <div className="flex-1 gradient-bg flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 relative">
+        {/* Language switch */}
+        {toggleLang && (
+          <div className="absolute top-6 right-6 z-30">
+            <button
+              onClick={toggleLang}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-xs font-bold text-slate-600 shadow-sm cursor-pointer hover:shadow transition-all"
+            >
+              {lang === 'vi' ? 'English' : 'Tiếng Việt'}
+            </button>
+          </div>
+        )}
+
+        <div className="w-full max-w-md z-10">
 
           {/* Glass card form container */}
           <div className="glass-card rounded-3xl p-8 sm:p-10">
@@ -145,10 +161,10 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
             {/* Greeting */}
             <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-1">
-                Chào mừng trở lại
+                {t('Welcome Back', lang)}
               </h2>
               <p className="text-slate-500 text-sm">
-                Đăng nhập để tiếp tục vào hệ thống
+                {t('Sign in to continue', lang)}
               </p>
             </div>
 
@@ -166,7 +182,7 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                 <button
                   onClick={handleLoginClick}
                   disabled={isLoading || !isConfigured}
-                  className={`w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 border cursor-pointer ${
+                  className={`w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 border border-neutral-200 cursor-pointer ${
                     isConfigured
                       ? 'bg-white hover:bg-gray-50 text-slate-700 border-gray-200 shadow-md shadow-gray-200/60 hover:shadow-lg hover:shadow-gray-200/80 active:scale-[0.98]'
                       : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
@@ -183,14 +199,14 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                       <path d="M1 1h22v22H1z" fill="none" />
                     </svg>
                   )}
-                  <span>{isLoading ? 'Đang kết nối...' : 'Đăng nhập với Google'}</span>
+                  <span>{isLoading ? (lang === 'vi' ? 'Đang kết nối...' : 'Connecting...') : t('Login Google', lang)}</span>
                 </button>
               </div>
 
               {/* ===== Divider ===== */}
               <div className="animate-fade-in-up flex items-center gap-4 my-1" style={{ animationDelay: '0.15s' }}>
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400 font-medium">hoặc</span>
+                <span className="text-xs text-gray-400 font-medium">{lang === 'vi' ? 'hoặc' : 'or'}</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
 
@@ -198,9 +214,9 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
               <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 <button
                   onClick={handleDemoLogin}
-                  className="w-full text-slate-500 hover:text-slate-700 text-sm py-2.5 px-4 transition-all duration-200 border border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-white/60 cursor-pointer"
+                  className="w-full text-slate-500 hover:text-slate-700 text-sm py-2.5 px-4 transition-all duration-200 border border-dashed border-gray-300 rounded-xl hover:border-gray-400 hover:bg-white/60 cursor-pointer text-center"
                 >
-                  Sử dụng tài khoản Demo
+                  {t('Skip Demo', lang)}
                 </button>
               </div>
             </div>
@@ -213,7 +229,7 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                 className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 cursor-pointer"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Cấu hình nâng cao</span>
+                <span>{t('Advanced Config', lang)}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
               </button>
 
@@ -233,7 +249,7 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                         className="text-[11px] text-blue-500 hover:text-blue-600 flex items-center gap-1 font-medium transition-colors cursor-pointer"
                       >
                         <Edit2 className="w-3 h-3" />
-                        {isEditingId ? 'Đóng' : 'Chỉnh sửa'}
+                        {isEditingId ? (lang === 'vi' ? 'Đóng' : 'Close') : (lang === 'vi' ? 'Chỉnh sửa' : 'Edit')}
                       </button>
                     </div>
 
@@ -252,12 +268,12 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-sm shadow-blue-600/20 cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          Lưu cấu hình & Tải lại
+                          {t('Save config', lang)}
                         </button>
                       </div>
                     ) : (
                       <div className="text-[11px] bg-gray-50 p-2.5 border border-gray-200 rounded-lg font-mono text-slate-500 truncate">
-                        {isConfigured ? clientId : 'Chưa cấu hình — sử dụng Demo Account'}
+                        {isConfigured ? clientId : (lang === 'vi' ? 'Chưa cấu hình — sử dụng Demo' : 'Not configured — using Demo')}
                       </div>
                     )}
                   </div>
@@ -268,10 +284,12 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
                       <ShieldAlert className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <h3 className="text-rose-600 font-bold text-xs">
-                          Khắc phục lỗi "origin_mismatch (Error 400)"
+                          {lang === 'vi' ? 'Khắc phục lỗi "origin_mismatch (Error 400)"' : 'Fixing "origin_mismatch" (Error 400)'}
                         </h3>
                         <p className="text-slate-600 text-[11px] mt-1 leading-relaxed">
-                          Thêm địa chỉ dưới đây vào <strong>Authorized JavaScript origins</strong> và <strong>Authorized redirect URIs</strong> trong Google Cloud Console.
+                          {lang === 'vi'
+                            ? 'Thêm địa chỉ dưới đây vào Authorized JavaScript origins và Authorized redirect URIs trong Google Cloud Console.'
+                            : 'Add the following URIs to Authorized JavaScript origins & Authorized redirect URIs in Google Cloud Console.'}
                         </p>
                       </div>
                     </div>
@@ -316,7 +334,7 @@ export default function Login({ onLogin }: { onLogin: (userInfo: any) => void })
           <div className="mt-6 text-center animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
               <Lock className="w-3 h-3" />
-              <span>Xác thực bảo mật nội bộ</span>
+              <span>{t('Security Access', lang)}</span>
             </div>
             <p className="text-[10px] text-gray-300 mt-1">
               © {new Date().getFullYear()} Binatech NDT. All rights reserved.

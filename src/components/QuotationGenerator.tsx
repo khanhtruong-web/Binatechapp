@@ -10,7 +10,7 @@ interface QuoteItem {
   rate: number;
 }
 
-export default function QuotationGenerator() {
+export default function QuotationGenerator({ lang = 'vi' }: { lang?: 'vi' | 'en' }) {
   const [clientName, setClientName] = useState('');
   const [projectName, setProjectName] = useState('');
   const [location, setLocation] = useState('');
@@ -43,7 +43,7 @@ export default function QuotationGenerator() {
 
   const handleGenerate = async () => {
     if (!clientName || !projectName) {
-      setError('Client Name and Project Name are required.');
+      setError(lang === 'vi' ? 'Vui lòng điền tên công ty và tên dự án.' : 'Client Name and Project Name are required.');
       return;
     }
     setError('');
@@ -93,9 +93,11 @@ export default function QuotationGenerator() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <DocIcon /> Quotation Engine
+              <DocIcon /> {lang === 'vi' ? 'Công cụ Báo giá' : 'Quotation Engine'}
             </h1>
-            <p className="text-slate-500 text-sm mt-1">Automated Drive Folder Setup & Doc Generation</p>
+            <p className="text-slate-500 text-sm mt-1">
+              {lang === 'vi' ? 'Tự động tạo thư mục Drive & Điền dữ liệu biểu mẫu' : 'Automated Drive Folder Setup & Doc Generation'}
+            </p>
           </div>
           <div className="text-xl font-mono text-slate-600 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
             {quoteNumber}
@@ -115,21 +117,27 @@ export default function QuotationGenerator() {
             
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-blue-600" /> Client & Project Info
+                <Briefcase className="w-5 h-5 text-blue-600" /> {lang === 'vi' ? 'Thông tin Khách hàng & Dự án' : 'Client & Project Info'}
               </h2>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
-                  <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. PTE LTS" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {lang === 'vi' ? 'Tên công ty' : 'Company Name'}
+                  </label>
+                  <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. PTSC POS" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Project Name</label>
-                  <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. CPP Topside" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {lang === 'vi' ? 'Tên dự án' : 'Project Name'}
+                  </label>
+                  <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Block B CPP Topside" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Location / Site</label>
-                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Block B Gas Project, Vung Tau" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {lang === 'vi' ? 'Địa điểm / Công trường' : 'Location / Site'}
+                  </label>
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Block B, Vung Tau Port" />
                 </div>
               </div>
             </div>
@@ -137,10 +145,10 @@ export default function QuotationGenerator() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
                <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-emerald-600" /> Scope of Work & Pricing
+                    <DollarSign className="w-5 h-5 text-emerald-600" /> {lang === 'vi' ? 'Phạm vi công việc & Đơn giá' : 'Scope of Work & Pricing'}
                   </h2>
-                  <button onClick={handleAddItem} className="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded flex items-center gap-1 transition-colors">
-                    <Plus className="w-4 h-4" /> Add Row
+                  <button onClick={handleAddItem} className="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded flex items-center gap-1 transition-colors cursor-pointer">
+                    <Plus className="w-4 h-4" /> {lang === 'vi' ? 'Thêm dòng' : 'Add Row'}
                   </button>
                </div>
 
@@ -148,12 +156,12 @@ export default function QuotationGenerator() {
                  <table className="w-full text-sm text-left">
                    <thead className="bg-slate-50 text-slate-600 border-y border-slate-200">
                      <tr>
-                       <th className="py-3 px-2">Method</th>
-                       <th className="py-3 px-2">Description</th>
-                       <th className="py-3 px-2">Pricing Model</th>
-                       <th className="py-3 px-2 w-16">Qty</th>
-                       <th className="py-3 px-2 w-32">Rate (USD)</th>
-                       <th className="py-3 px-2 w-32">Total</th>
+                       <th className="py-3 px-2">{lang === 'vi' ? 'Phương pháp' : 'Method'}</th>
+                       <th className="py-3 px-2">{lang === 'vi' ? 'Mô tả chi tiết' : 'Description'}</th>
+                       <th className="py-3 px-2">{lang === 'vi' ? 'Hình thức đơn giá' : 'Pricing Model'}</th>
+                       <th className="py-3 px-2 w-16">{lang === 'vi' ? 'SL' : 'Qty'}</th>
+                       <th className="py-3 px-2 w-32">{lang === 'vi' ? 'Đơn giá (USD)' : 'Rate (USD)'}</th>
+                       <th className="py-3 px-2 w-32">{lang === 'vi' ? 'Thành tiền' : 'Total'}</th>
                        <th className="py-3 px-2 w-10"></th>
                      </tr>
                    </thead>
@@ -161,19 +169,19 @@ export default function QuotationGenerator() {
                      {items.map((item, idx) => (
                        <tr key={item.id} className="hover:bg-slate-50/50">
                          <td className="py-2 px-2">
-                           <select value={item.method} onChange={(e) => updateItem(item.id, 'method', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm">
+                           <select value={item.method} onChange={(e) => updateItem(item.id, 'method', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm bg-white">
                              {NDT_METHODS.map(m => <option key={m}>{m}</option>)}
                            </select>
                          </td>
                          <td className="py-2 px-2">
-                           <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm" placeholder="Details..." />
+                           <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm" placeholder={lang === 'vi' ? 'Chi tiết...' : 'Details...'} />
                          </td>
                          <td className="py-2 px-2">
-                            <select value={item.pricingModel} onChange={(e) => updateItem(item.id, 'pricingModel', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm">
-                             <option>Daily Rate</option>
-                             <option>Unit Rate</option>
-                             <option>Lump Sum</option>
-                           </select>
+                            <select value={item.pricingModel} onChange={(e) => updateItem(item.id, 'pricingModel', e.target.value)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm bg-white">
+                             <option value="Daily Rate">{lang === 'vi' ? 'Đơn giá ngày' : 'Daily Rate'}</option>
+                             <option value="Unit Rate">{lang === 'vi' ? 'Đơn giá đơn vị' : 'Unit Rate'}</option>
+                             <option value="Lump Sum">{lang === 'vi' ? 'Trọn gói' : 'Lump Sum'}</option>
+                            </select>
                          </td>
                          <td className="py-2 px-2">
                            <input type="number" value={item.qty} onChange={(e) => updateItem(item.id, 'qty', parseFloat(e.target.value) || 0)} className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm" />
@@ -197,7 +205,7 @@ export default function QuotationGenerator() {
                
                <div className="flex justify-end pt-4 border-t border-slate-100">
                  <div className="text-right">
-                   <p className="text-slate-500 text-sm mb-1">Estimated Total</p>
+                   <p className="text-slate-500 text-sm mb-1">{lang === 'vi' ? 'Tổng đơn giá ước tính' : 'Estimated Total'}</p>
                    <p className="text-3xl font-bold text-slate-800">${calculateTotal().toLocaleString()}</p>
                  </div>
                </div>
@@ -210,9 +218,13 @@ export default function QuotationGenerator() {
             
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" /> Template Engine
+                <FileText className="w-5 h-5 text-indigo-600" /> {lang === 'vi' ? 'Mẫu Báo giá (.docx)' : 'Template Engine'}
                </h2>
-               <p className="text-xs text-slate-500">Upload a DOCX template with {'{tags}'} to inject the data automatically. If empty, a standard costing sheet will be duplicated into the Drive folder.</p>
+               <p className="text-xs text-slate-500">
+                 {lang === 'vi' 
+                   ? 'Tải lên mẫu .docx với các tag dạng {CLIENT_NAME} để tự động điền dữ liệu. Nếu để trống, hệ thống sẽ sử dụng biểu mẫu Master Costing Sheet tiêu chuẩn.'
+                   : 'Upload a DOCX template with {tags} to inject the data automatically. If empty, a standard costing sheet will be duplicated into the Drive folder.'}
+               </p>
                
                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors">
                   <input type="file" accept=".docx" id="template-upload" className="hidden" onChange={(e) => setTemplateFile(e.target.files?.[0] || null)} />
@@ -221,13 +233,13 @@ export default function QuotationGenerator() {
                       <>
                         <FileText className="w-8 h-8 text-indigo-500 mb-2" />
                         <span className="text-sm font-medium text-indigo-800">{templateFile.name}</span>
-                        <span className="text-xs text-slate-500 mt-1">Click to replace</span>
+                        <span className="text-xs text-slate-500 mt-1">{lang === 'vi' ? 'Nhấp để thay đổi' : 'Click to replace'}</span>
                       </>
                     ) : (
                       <>
                          <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                         <span className="text-sm font-medium text-slate-700">Upload .docx template</span>
-                         <span className="text-xs text-slate-500 mt-1">Supports {'{CLIENT_NAME}'}, {'{TOTAL_PRICE}'} format</span>
+                         <span className="text-sm font-medium text-slate-700">{lang === 'vi' ? 'Tải lên mẫu .docx' : 'Upload .docx template'}</span>
+                         <span className="text-xs text-slate-500 mt-1">{lang === 'vi' ? 'Hỗ trợ tag dạng {CLIENT_NAME}, {TOTAL_PRICE}' : 'Supports {CLIENT_NAME}, {TOTAL_PRICE} format'}</span>
                       </>
                     )}
                   </label>
@@ -238,24 +250,30 @@ export default function QuotationGenerator() {
               <button 
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl shadow-sm transition-all flex justify-center items-center gap-2 disabled:bg-blue-400"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl shadow-sm transition-all flex justify-center items-center gap-2 disabled:bg-blue-400 cursor-pointer"
               >
-                {isGenerating ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing Backend...</> : <><CheckCircle2 className="w-5 h-5" /> Generate & Upload</>}
+                {isGenerating 
+                  ? <><Loader2 className="w-5 h-5 animate-spin" /> {lang === 'vi' ? 'Đang khởi tạo trên Drive...' : 'Processing Backend...'}</> 
+                  : <><CheckCircle2 className="w-5 h-5" /> {lang === 'vi' ? 'Khởi tạo & Tải lên' : 'Generate & Upload'}</>}
               </button>
 
               {result && (
                 <div className="pt-4 border-t border-slate-100 space-y-3">
                   <h3 className="text-sm font-semibold text-emerald-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> Successfully Generated
+                    <CheckCircle2 className="w-4 h-4" /> {lang === 'vi' ? 'Khởi tạo thành công!' : 'Successfully Generated'}
                   </h3>
                   <a href={result.folderLink} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 hover:bg-slate-100 p-3 rounded-lg border border-slate-200 transition-colors">
                     <Briefcase className="w-4 h-4 text-slate-500" />
-                    <div className="flex-1 truncate">Drive Client Folder</div>
+                    <div className="flex-1 truncate">{lang === 'vi' ? 'Thư mục Drive của dự án' : 'Drive Client Folder'}</div>
                     <LinkIcon className="w-3 h-3 text-slate-400" />
                   </a>
                   <a href={result.documentLink} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 p-3 rounded-lg border border-blue-200 transition-colors">
                     <FileText className="w-4 h-4 text-blue-500" />
-                    <div className="flex-1 truncate">{templateFile ? 'Injected Quote.docx' : 'Master Costing Sheet'}</div>
+                    <div className="flex-1 truncate">
+                      {templateFile 
+                        ? (lang === 'vi' ? 'File báo giá đã nạp.docx' : 'Injected Quote.docx') 
+                        : (lang === 'vi' ? 'Bảng tính Master Costing' : 'Master Costing Sheet')}
+                    </div>
                     <LinkIcon className="w-3 h-3 text-blue-400" />
                   </a>
                 </div>
