@@ -1,0 +1,86 @@
+import fs from 'fs';
+import path from 'path';
+
+const LOCAL_DB_PATH = path.join(process.cwd(), 'local_db.json');
+
+// Precompiled default mock database matching the system workflows
+const DEFAULT_MOCK_DATA: Record<string, any[]> = {
+  'Marketing': [
+    { clientId: "C001", companyName: "Alpha Petroleum Ltd", contactPerson: "John Doe", status: "Hot", meetingLogs: "PAUT pipeline inspection requirements discussed." },
+    { clientId: "C002", companyName: "Beta Refinery Services", contactPerson: "Jane Smith", status: "Warm", meetingLogs: "Sent proposal draft for general UT inspection." }
+  ],
+  'Accounting': [
+    { invoiceId: "INV-2026-001", client: "C001", amount: "12500", status: "Paid", dueDate: "2026-06-30", opExpenses: "1200" },
+    { invoiceId: "INV-2026-002", client: "C002", amount: "6200", status: "Pending", dueDate: "2026-07-15", opExpenses: "450" }
+  ],
+  'HR (Personnel)': [
+    { empId: "E001", name: "Nguyen Van A", position: "Senior RT Inspector", certMethod: "RT", certLevel: "Level II", certExpiry: "2027-12-31", medicalExpiry: "2026-12-31", contractEnd: "2028-06-30" },
+    { empId: "E002", name: "Tran Van B", position: "PAUT Specialist / Evaluator", certMethod: "PAUT", certLevel: "Level III", certExpiry: "2028-05-15", medicalExpiry: "2027-01-10", contractEnd: "2029-01-01" }
+  ],
+  'Project Control': [
+    { projectId: "PRJ-001", client: "C001", scope: "Storage Tank UT Inspection & Assessment", startDate: "2026-06-01", endDate: "2026-08-30", progress: "45", personnel: "E001" },
+    { projectId: "PRJ-002", client: "C002", scope: "Offshore Platform Weld PAUT scanning", startDate: "2026-07-01", endDate: "2026-07-15", progress: "10", personnel: "E002" }
+  ],
+  'Technical Dossier': [
+    { docId: "DOC-VT-01", type: "Procedure", standard: "ASME", status: "Approved", driveLink: "https://drive.google.com/open?id=simulated_vt_procedure" },
+    { docId: "DOC-PAUT-02", type: "Scanplan", standard: "API", status: "Draft", driveLink: "https://drive.google.com/open?id=simulated_paut_scanplan" }
+  ],
+  'Training': [
+    { logId: "TR-001", empId: "E001", course: "Advanced Radiation Safety certification refresh", type: "Internal", hours: "40", date: "2026-03-10", certificate: "https://drive.google.com/open?id=simulated_cert" }
+  ],
+  'Equipment': [
+    { tagNo: "EQ-PAUT-01", name: "Omniscan MX2", model: "OMNI-9942", type: "PAUT Machine", calDate: "2026-01-15", nextCal: "2027-01-15", status: "Active", maintenanceLog: "Annual calibration completed by Olympus services." },
+    { tagNo: "EQ-YOKE-02", name: "Magnaflux Y-2 Web Yoke", model: "YK-8812", type: "Yoke", calDate: "2025-11-20", nextCal: "2026-11-20", status: "Active", maintenanceLog: "AC lift checked at 10 lbs with standard test weights." }
+  ],
+  'NDT Reports': [
+    { reportNo: "REP-2026-001", projectId: "PRJ-001", jointNo: "J-101", method: "UT", result: "Accept", inspectorId: "E001", driveLink: "https://drive.google.com/open?id=simulated_report" }
+  ],
+  'Tender Dossier': [
+    { tenderId: "TEN-2026-09", client: "C001", deadline: "2026-08-01", status: "Preparing", techMatrix: "https://drive.google.com/open?id=simulated_tech", commMatrix: "https://drive.google.com/open?id=simulated_comm" }
+  ]
+};
+
+// Initialize file if not exists
+if (!fs.existsSync(LOCAL_DB_PATH)) {
+  fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(DEFAULT_MOCK_DATA, null, 2), 'utf8');
+}
+
+export function getLocalRows(sheetName: string): any[] {
+  try {
+    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+    const db = JSON.parse(data);
+    return db[sheetName] || [];
+  } catch (error) {
+    console.error('Error reading local DB:', error);
+    return DEFAULT_MOCK_DATA[sheetName] || [];
+  }
+}
+
+export function addLocalRow(sheetName: string, rowData: any) {
+  try {
+    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+    const db = JSON.parse(data);
+    if (!db[sheetName]) db[sheetName] = [];
+    db[sheetName].push(rowData);
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error writing to local DB:', error);
+  }
+}
+
+export function updateLocalRow(sheetName: string, idColumn: string, idValue: string, newData: any) {
+  try {
+    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+    const db = JSON.parse(data);
+    if (!db[sheetName]) db[sheetName] = [];
+    db[sheetName] = db[sheetName].map((row: any) => {
+      if (String(row[idColumn]) === String(idValue)) {
+        return { ...row, ...newData };
+      }
+      return row;
+    });
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error updating local DB:', error);
+  }
+}

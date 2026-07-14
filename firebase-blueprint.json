@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "marketing": {
+      "title": "Marketing",
+      "description": "Marketing leads and client acquisition logs",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "Unique Client ID" },
+        "companyName": { "type": "string", "description": "Name of client corporation" },
+        "contactPerson": { "type": "string", "description": "Primary communication contact person" },
+        "status": { "type": "string", "enum": ["Cold", "Warm", "Hot", "Converted"] },
+        "meetingLogs": { "type": "string", "description": "Log narrative of interactions" }
+      },
+      "required": ["clientId", "companyName"]
+    },
+    "accounting": {
+      "title": "Accounting",
+      "description": "Invoice database and expense records",
+      "type": "object",
+      "properties": {
+        "invoiceId": { "type": "string", "description": "Unique Invoice ID" },
+        "client": { "type": "string", "description": "Lookup ID referencing target client" },
+        "amount": { "type": "number", "description": "Financial value in USD" },
+        "status": { "type": "string", "enum": ["Pending", "Paid", "Overdue"] },
+        "dueDate": { "type": "string", "format": "date", "description": "Payment final limit date" },
+        "opExpenses": { "type": "number", "description": "Operational Expenses" }
+      },
+      "required": ["invoiceId", "amount"]
+    },
+    "hr": {
+      "title": "HR (Personnel)",
+      "description": "Employees list with credentials and certification dates",
+      "type": "object",
+      "properties": {
+        "empId": { "type": "string", "description": "Unique Employee ID ID" },
+        "name": { "type": "string", "description": "Employee Full Name" },
+        "position": { "type": "string", "description": "Organization job title" },
+        "certMethod": { "type": "string", "enum": ["RT", "UT", "MT", "PT", "PAUT", "VT"] },
+        "certLevel": { "type": "string", "enum": ["Level I", "Level II", "Level III"] },
+        "certExpiry": { "type": "string", "format": "date" },
+        "medicalExpiry": { "type": "string", "format": "date" },
+        "contractEnd": { "type": "string", "format": "date" }
+      },
+      "required": ["empId", "name"]
+    },
+    "project": {
+      "title": "Project Control",
+      "description": "Project schedules and resource assignment records",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string", "description": "Unique project identifier" },
+        "client": { "type": "string" },
+        "scope": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "progress": { "type": "number" },
+        "personnel": { "type": "string", "description": "Assigned NDT personnel reference" }
+      },
+      "required": ["projectId"]
+    },
+    "techDossier": {
+      "title": "Technical Dossier",
+      "description": "Standard references and specifications docs",
+      "type": "object",
+      "properties": {
+        "docId": { "type": "string", "description": "Document tracking ID" },
+        "type": { "type": "string", "enum": ["WPS/PQR", "Scanplan", "Procedure", "Criteria"] },
+        "standard": { "type": "string", "enum": ["ASME", "API", "AWS", "ISO"] },
+        "status": { "type": "string", "enum": ["Draft", "Approved", "Obsolete"] },
+        "driveLink": { "type": "string", "description": "Google Drive Web link" }
+      },
+      "required": ["docId"]
+    },
+    "training": {
+      "title": "Training",
+      "description": "Logs of NDT personnel qualifications and continuous hours tracked",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string" },
+        "empId": { "type": "string" },
+        "course": { "type": "string" },
+        "type": { "type": "string", "enum": ["Internal", "External"] },
+        "hours": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "certificate": { "type": "string" }
+      },
+      "required": ["logId"]
+    },
+    "equipment": {
+      "title": "Equipment",
+      "description": "Active NDT equipment calibrations inventory",
+      "type": "object",
+      "properties": {
+        "tagNo": { "type": "string", "description": "Unique tag barcode" },
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "type": { "type": "string", "enum": ["PAUT Machine", "TR Probe", "Yoke", "Calibration Block"] },
+        "calDate": { "type": "string", "format": "date" },
+        "nextCal": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["Active", "Expiring Soon", "Out of Service"] },
+        "maintenanceLog": { "type": "string" }
+      },
+      "required": ["tagNo", "name"]
+    },
+    "ndtReport": {
+      "title": "NDT Reports",
+      "description": "Official inspector assessment entries",
+      "type": "object",
+      "properties": {
+        "reportNo": { "type": "string" },
+        "projectId": { "type": "string" },
+        "jointNo": { "type": "string" },
+        "method": { "type": "string", "enum": ["RT", "UT", "MT", "PT", "PAUT"] },
+        "result": { "type": "string", "enum": ["Accept", "Reject"] },
+        "inspectorId": { "type": "string" },
+        "driveLink": { "type": "string" }
+      },
+      "required": ["reportNo", "projectId"]
+    },
+    "tender": {
+      "title": "Tender Dossier",
+      "description": "Commercial bidding profiles and draft responses",
+      "type": "object",
+      "properties": {
+        "tenderId": { "type": "string" },
+        "client": { "type": "string" },
+        "deadline": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["Preparing", "Submitted", "Won", "Lost"] },
+        "techMatrix": { "type": "string" },
+        "commMatrix": { "type": "string" }
+      },
+      "required": ["tenderId"]
+    }
+  },
+  "firestore": {
+    "/marketing": {
+      "schema": "marketing",
+      "description": "Leads tracking"
+    },
+    "/accounting": {
+      "schema": "accounting",
+      "description": "Invoicing"
+    },
+    "/hr": {
+      "schema": "hr",
+      "description": "Personnel catalog"
+    },
+    "/projects": {
+      "schema": "project",
+      "description": "Work project controls"
+    },
+    "/techDossier": {
+      "schema": "techDossier",
+      "description": "Standard and specifications library"
+    },
+    "/training": {
+      "schema": "training",
+      "description": "NDT staff certifications logs"
+    },
+    "/equipment": {
+      "schema": "equipment",
+      "description": "NDT calibration listings"
+    },
+    "/ndtReports": {
+      "schema": "ndtReport",
+      "description": "Inspection report entries log"
+    },
+    "/tenders": {
+      "schema": "tender",
+      "description": "Project tendering records"
+    }
+  }
+}

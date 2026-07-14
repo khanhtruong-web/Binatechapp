@@ -1,0 +1,200 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Pillar 1: Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Pillar 3: Path Variable & ID Poisoning Guard
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Pillar 6 & Runtime Specific Bootstrapped Admin Override
+    function isAdmin() {
+      return isEmailVerified() && (
+        request.auth.token.email == 'khanhdcn@gmail.com' || 
+        request.auth.token.email == 'admin@binatech-ndt.com'
+      );
+    }
+
+    // Role-based Access check (Fallback for normal staff members)
+    function isStaff() {
+      return isEmailVerified() && (
+        request.auth.token.email.endsWith('@binatech-ndt.com') || 
+        request.auth.token.email == 'khanhdcn@gmail.com'
+      );
+    }
+
+    // --- ENTITY SCHEMA VALIDATIONS (Pillar 2: Anti-Update-Gap) ---
+    
+    function isValidMarketing(data) {
+      return data.keys().hasAll(['clientId', 'companyName']) &&
+             data.keys().size() <= 6 &&
+             data.clientId is string && data.clientId.size() <= 50 &&
+             data.companyName is string && data.companyName.size() <= 200 &&
+             (!data.keys().hasAny(['contactPerson']) || (data.contactPerson is string && data.contactPerson.size() <= 100)) &&
+             (!data.keys().hasAny(['status']) || (data.status is string && data.status.size() <= 50)) &&
+             (!data.keys().hasAny(['meetingLogs']) || (data.meetingLogs is string && data.meetingLogs.size() <= 2000));
+    }
+
+    function isValidAccounting(data) {
+      return data.keys().hasAll(['invoiceId', 'amount']) &&
+             data.keys().size() <= 6 &&
+             data.invoiceId is string && data.invoiceId.size() <= 50 &&
+             data.amount is number && data.amount >= 0 &&
+             (!data.keys().hasAny(['client']) || (data.client is string && data.client.size() <= 100)) &&
+             (!data.keys().hasAny(['status']) || (data.status is string && data.status.size() <= 50)) &&
+             (!data.keys().hasAny(['dueDate']) || (data.dueDate is string && data.dueDate.size() <= 20)) &&
+             (!data.keys().hasAny(['opExpenses']) || (data.opExpenses is number));
+    }
+
+    function isValidHR(data) {
+      return data.keys().hasAll(['empId', 'name']) &&
+             data.keys().size() <= 8 &&
+             data.empId is string && data.empId.size() <= 50 &&
+             data.name is string && data.name.size() <= 100 &&
+             (!data.keys().hasAny(['position']) || (data.position is string && data.position.size() <= 100)) &&
+             (!data.keys().hasAny(['certMethod']) || (data.certMethod is string && data.certMethod.size() <= 20)) &&
+             (!data.keys().hasAny(['certLevel']) || (data.certLevel is string && data.certLevel.size() <= 20)) &&
+             (!data.keys().hasAny(['certExpiry']) || (data.certExpiry is string && data.certExpiry.size() <= 20)) &&
+             (!data.keys().hasAny(['medicalExpiry']) || (data.medicalExpiry is string && data.medicalExpiry.size() <= 20)) &&
+             (!data.keys().hasAny(['contractEnd']) || (data.contractEnd is string && data.contractEnd.size() <= 20));
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['projectId']) &&
+             data.keys().size() <= 7 &&
+             data.projectId is string && data.projectId.size() <= 50 &&
+             (!data.keys().hasAny(['client']) || (data.client is string && data.client.size() <= 100)) &&
+             (!data.keys().hasAny(['scope']) || (data.scope is string && data.scope.size() <= 1000)) &&
+             (!data.keys().hasAny(['startDate']) || (data.startDate is string && data.startDate.size() <= 20)) &&
+             (!data.keys().hasAny(['endDate']) || (data.endDate is string && data.endDate.size() <= 20)) &&
+             (!data.keys().hasAny(['progress']) || (data.progress is number && data.progress >= 0 && data.progress <= 100)) &&
+             (!data.keys().hasAny(['personnel']) || (data.personnel is string && data.personnel.size() <= 100));
+    }
+
+    function isValidTechDossier(data) {
+      return data.keys().hasAll(['docId']) &&
+             data.keys().size() <= 5 &&
+             data.docId is string && data.docId.size() <= 50 &&
+             (!data.keys().hasAny(['type']) || (data.type is string && data.type.size() <= 50)) &&
+             (!data.keys().hasAny(['standard']) || (data.standard is string && data.standard.size() <= 50)) &&
+             (!data.keys().hasAny(['status']) || (data.status is string && data.status.size() <= 50)) &&
+             (!data.keys().hasAny(['driveLink']) || (data.driveLink is string && data.driveLink.size() <= 500));
+    }
+
+    function isValidTraining(data) {
+      return data.keys().hasAll(['logId']) &&
+             data.keys().size() <= 7 &&
+             data.logId is string && data.logId.size() <= 50 &&
+             (!data.keys().hasAny(['empId']) || (data.empId is string && data.empId.size() <= 50)) &&
+             (!data.keys().hasAny(['course']) || (data.course is string && data.course.size() <= 200)) &&
+             (!data.keys().hasAny(['type']) || (data.type is string && data.type.size() <= 50)) &&
+             (!data.keys().hasAny(['hours']) || (data.hours is number && data.hours >= 0)) &&
+             (!data.keys().hasAny(['date']) || (data.date is string && data.date.size() <= 20)) &&
+             (!data.keys().hasAny(['certificate']) || (data.certificate is string && data.certificate.size() <= 500));
+    }
+
+    function isValidEquipment(data) {
+      return data.keys().hasAll(['tagNo', 'name']) &&
+             data.keys().size() <= 8 &&
+             data.tagNo is string && data.tagNo.size() <= 50 &&
+             data.name is string && data.name.size() <= 200 &&
+             (!data.keys().hasAny(['model']) || (data.model is string && data.model.size() <= 100)) &&
+             (!data.keys().hasAny(['type']) || (data.type is string && data.type.size() <= 50)) &&
+             (!data.keys().hasAny(['calDate']) || (data.calDate is string && data.calDate.size() <= 20)) &&
+             (!data.keys().hasAny(['nextCal']) || (data.nextCal is string && data.nextCal.size() <= 20)) &&
+             (!data.keys().hasAny(['status']) || (data.status is string && data.status.size() <= 50)) &&
+             (!data.keys().hasAny(['maintenanceLog']) || (data.maintenanceLog is string && data.maintenanceLog.size() <= 2000));
+    }
+
+    function isValidNdtReport(data) {
+      return data.keys().hasAll(['reportNo', 'projectId']) &&
+             data.keys().size() <= 7 &&
+             data.reportNo is string && data.reportNo.size() <= 50 &&
+             data.projectId is string && data.projectId.size() <= 50 &&
+             (!data.keys().hasAny(['jointNo']) || (data.jointNo is string && data.jointNo.size() <= 50)) &&
+             (!data.keys().hasAny(['method']) || (data.method is string && data.method.size() <= 20)) &&
+             (!data.keys().hasAny(['result']) || (data.result is string && data.result.size() <= 20)) &&
+             (!data.keys().hasAny(['inspectorId']) || (data.inspectorId is string && data.inspectorId.size() <= 50)) &&
+             (!data.keys().hasAny(['driveLink']) || (data.driveLink is string && data.driveLink.size() <= 500));
+    }
+
+    function isValidTender(data) {
+      return data.keys().hasAll(['tenderId']) &&
+             data.keys().size() <= 6 &&
+             data.tenderId is string && data.tenderId.size() <= 50 &&
+             (!data.keys().hasAny(['client']) || (data.client is string && data.client.size() <= 100)) &&
+             (!data.keys().hasAny(['deadline']) || (data.deadline is string && data.deadline.size() <= 20)) &&
+             (!data.keys().hasAny(['status']) || (data.status is string && data.status.size() <= 50)) &&
+             (!data.keys().hasAny(['techMatrix']) || (data.techMatrix is string && data.techMatrix.size() <= 500)) &&
+             (!data.keys().hasAny(['commMatrix']) || (data.commMatrix is string && data.commMatrix.size() <= 500));
+    }
+
+    // --- COLLECTIONS MAPPINGS ---
+
+    match /marketing/{clientId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(clientId) && isValidMarketing(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /accounting/{invoiceId} {
+      allow read, write: if isAdmin(); // Accounting is restricted purely to admin
+    }
+
+    match /hr/{empId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(empId) && isValidHR(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(projectId) && isValidProject(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /techDossier/{docId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(docId) && isValidTechDossier(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /training/{logId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(logId) && isValidTraining(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /equipment/{tagNo} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(tagNo) && isValidEquipment(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /ndtReports/{reportNo} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(reportNo) && isValidNdtReport(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /tenders/{tenderId} {
+      allow read: if isStaff();
+      allow create, update: if (isAdmin() || isStaff()) && isValidId(tenderId) && isValidTender(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}

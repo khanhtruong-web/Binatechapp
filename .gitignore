@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+
+# System files
+.DS_Store
+*.log
+
+# Environment variables (chứa secrets)
+.env*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Agent config (không push)
+.agent/
+.claude/
