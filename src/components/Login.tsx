@@ -3,13 +3,16 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { Target, Lock, AlertCircle, Loader2, Key, Copy, Check, ShieldAlert, Edit2, Save, ChevronDown, Settings } from 'lucide-react';
 import { setCachedToken } from '../lib/authCache';
 
+import firebaseConfig from '../../firebase-applet-config.json';
+
 export default function Login({ onLogin }: { onLogin: (userInfo: any) => void }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const envClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const storageClientId = localStorage.getItem('VITE_GOOGLE_CLIENT_ID');
-  const clientId = storageClientId || envClientId;
+  const configClientId = firebaseConfig.oAuthClientId;
+  const clientId = storageClientId || envClientId || configClientId;
   const isConfigured = clientId && clientId !== 'dummy-client-id' && clientId !== '';
 
   const [isEditingId, setIsEditingId] = useState(false);
