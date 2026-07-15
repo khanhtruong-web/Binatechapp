@@ -235,13 +235,31 @@ export default function App() {
               isOpen ? 'opacity-100 w-auto pointer-events-auto block' : 'opacity-0 w-0 pointer-events-none hidden'
             }`}>
               <p className="text-xs font-semibold text-slate-200 truncate">{userInfo?.name || 'User'}</p>
-              <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 ${
-                userRole === 'Admin' ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400' :
-                userRole === 'Manager' ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400' :
-                'bg-slate-500/10 border border-slate-500/30 text-slate-400'
-              }`}>
-                {userRole}
-              </span>
+              <select
+                value={userRole}
+                onChange={(e) => {
+                  const nextRole = e.target.value as 'Admin' | 'Manager' | 'Employee';
+                  setUserRole(nextRole);
+                  localStorage.setItem('BINATECH_USER_ROLE', nextRole);
+                  
+                  // Reset active tab if new role is unauthorized for it
+                  const newTabs = allTabs.filter(tab => tab.roles.includes(nextRole));
+                  const isCurrentTabAllowed = newTabs.some(t => t.name === activeTab) || (nextRole === 'Admin' && activeTab === 'Settings');
+                  if (!isCurrentTabAllowed) {
+                    setActiveTab('Dashboard');
+                  }
+                }}
+                className={`block text-[10px] font-bold px-1.5 py-0.5 rounded-lg mt-0.5 outline-none border cursor-pointer bg-slate-950 transition-all ${
+                  userRole === 'Admin' ? 'border-blue-500/40 text-blue-400' :
+                  userRole === 'Manager' ? 'border-indigo-500/40 text-indigo-400' :
+                  'border-slate-700 text-slate-400'
+                }`}
+                title={lang === 'vi' ? 'Đổi quyền nhanh' : 'Quick role switch'}
+              >
+                <option value="Admin">Admin</option>
+                <option value="Manager">Manager</option>
+                <option value="Employee">Employee</option>
+              </select>
             </div>
           </div>
 
