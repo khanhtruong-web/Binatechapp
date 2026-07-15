@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cẩm Nang Hướng Dẫn Sử Dụng - Binatech ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;850&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --amber: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-800);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar navigation */
+        .sidebar {
+            width: 280px;
+            background-color: var(--slate-900);
+            color: white;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+            border-right: 1px border var(--slate-800);
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 850;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--slate-800);
+        }
+
+        .brand span {
+            color: var(--primary);
+        }
+
+        .menu-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--slate-500);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .menu-list {
+            list-style: none;
+        }
+
+        .menu-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .menu-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--slate-500);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .menu-link:hover, .menu-link.active {
+            color: white;
+            background-color: var(--slate-800);
+        }
+
+        .menu-link.active {
+            border-left: 3px solid var(--primary);
+            background-color: rgba(37, 99, 235, 0.1);
+            color: #60a5fa;
+        }
+
+        /* Main content container */
+        .main-content {
+            margin-left: 280px;
+            flex-grow: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 850;
+            color: var(--slate-900);
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--slate-100);
+            scroll-margin-top: 2rem;
+        }
+
+        h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--slate-800);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--slate-600);
+            font-size: 0.95rem;
+        }
+
+        /* Highlights & Alerts */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+        }
+
+        .alert-info {
+            background-color: rgba(37, 99, 235, 0.05);
+            border-color: rgba(37, 99, 235, 0.15);
+            color: #1e3a8a;
+        }
+
+        .alert-warning {
+            background-color: rgba(245, 158, 11, 0.05);
+            border-color: rgba(245, 158, 11, 0.15);
+            color: #78350f;
+        }
+
+        .alert-danger {
+            background-color: rgba(244, 63, 94, 0.05);
+            border-color: rgba(244, 63, 94, 0.15);
+            color: #881337;
+        }
+
+        /* Code Block & Keyboard */
+        code {
+            font-family: monospace;
+            background-color: var(--slate-100);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            color: var(--rose);
+        }
+
+        pre {
+            background-color: var(--slate-900);
+            color: var(--slate-100);
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--slate-800);
+        }
+
+        /* Step instructions */
+        .steps {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-item {
+            position: relative;
+            padding-left: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0.1rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid var(--slate-100);
+        }
+
+        th, td {
+            padding: 0.875rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--slate-100);
+        }
+
+        th {
+            background-color: var(--slate-100);
+            color: var(--slate-700);
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Grid Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--slate-100);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-icon {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--slate-800);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="brand">
+            <span>BinaTech</span> ERP Manual
+        </div>
+        
+        <div class="menu-title">Bắt Đầu Nhanh</div>
+        <ul class="menu-list">
+            <li class="menu-item"><a href="#intro" class="menu-link active">Giới Thiệu Chung</a></li>
+            <li class="menu-item"><a href="#installation" class="menu-link">Cấu Hình Kết Nối (Settings)</a></li>
+        </ul>
+
+        <div class="menu-title">Hướng Dẫn Phân Hệ (Tabs)</div>
+        <ul class="menu-list">
+            <li class="menu-item"><a href="#tab-dashboard" class="menu-link">1. Dashboard & Status Bar</a></li>
+            <li class="menu-item"><a href="#tab-marketing" class="menu-link">2. Marketing & Leads</a></li>
+            <li class="menu-item"><a href="#tab-accounting" class="menu-link">3. Kế Toán Doanh Nghiệp</a></li>
+            <li class="menu-item"><a href="#tab-hr" class="menu-link">4. Tuyển Dụng & Nhân Sự</a></li>
+            <li class="menu-item"><a href="#tab-projects" class="menu-link">5. Quản Lý Dự Án</a></li>
+            <li class="menu-item"><a href="#tab-technical" class="menu-link">6. Hồ Sơ Kỹ Thuật (NDT)</a></li>
+            <li class="menu-item"><a href="#tab-equipment" class="menu-link">7. Quản Lý Thiết Bị NDT</a></li>
+            <li class="menu-item"><a href="#tab-welding" class="menu-link">8. Quản Lý Hàn & Welders</a></li>
+            <li class="menu-item"><a href="#tab-reports" class="menu-link">9. Trung Tâm Báo Cáo</a></li>
+        </ul>
+
+        <div class="menu-title">Trợ Lý AI & Sự Cố</div>
+        <ul class="menu-list">
+            <li class="menu-item"><a href="#chatbox-ai" class="menu-link">Trợ Lý AI & Xuất Excel</a></li>
+            <li class="menu-item"><a href="#error-diagnostics" class="menu-link">Theo Dõi Lỗi Hệ Thống</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <h1 id="intro">Cẩm Nang Hướng Dẫn Sử Dụng Binatech NDT ERP</h1>
+        <p>Binatech NDT ERP là phần mềm quản trị doanh nghiệp tích hợp cao cấp được thiết kế riêng biệt cho các doanh nghiệp hoạt động trong lĩnh vực Kiểm Tra Không Phá Hủy (NDT). Tài liệu này cung cấp hướng dẫn vận hành chi tiết, thiết lập kỹ thuật kết nối Google Workspace và cách khai thác Trợ lý AI thông minh.</p>
+
+        <div class="alert alert-info">
+            <strong>Phiên bản v2.1 • Cập nhật ngày 15/07/2026.</strong> Tích hợp giao diện sáng/tối (Dark Mode), bộ ghim Sidebar thông minh, bảng theo dõi lỗi chẩn đoán tự động và xuất báo cáo Pivot Excel từ Chatbox AI.
+        </div>
+
+        <h2 id="installation">Cấu Hình Kết Nối Ban Đầu (Settings)</h2>
+        <p>Để ứng dụng đồng bộ dữ liệu thời gian thực lên Google Sheets và Google Drive của công ty, người quản trị (Admin) cần thiết lập cấu hình kết nối tại tab <strong>Settings</strong>.</p>
+        
+        <div class="card-grid">
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-icon">🔑</span>
+                    1. Google Sheets Database ID
+                </div>
+                <p>Mã định danh của bảng tính Google Sheet được dùng làm cơ sở dữ liệu cho 9 phân hệ. Copy chuỗi ký tự nằm giữa <code>/d/</code> và <code>/edit</code> trên đường dẫn URL của Sheet và dán vào ô nhập liệu.</p>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-icon">📂</span>
+                    2. Service Account JSON
+                </div>
+                <p>Nội dung file khóa bảo mật <code>.json</code> tải về từ Google Cloud Console. Cấp cho ứng dụng quyền thay mặt quản trị viên đọc/ghi dữ liệu. Bạn phải <strong>Share quyền Editor</strong> của file Google Sheet cho email Service Account này.</p>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-icon">🤖</span>
+                    3. Gemini API Key
+                </div>
+                <p>Khóa API lấy miễn phí từ Google AI Studio (ai.google.dev) để kích hoạt toàn bộ tính năng phân tích dữ liệu, tự học, chẩn đoán lỗi và sinh file Excel từ Chatbox AI.</p>
+            </div>
+        </div>
+
+        <h2 id="tab-dashboard">1. Tổng Quan Dashboard & Thanh Trạng Thái (Status Bar)</h2>
+        <p>Trang Dashboard hiển thị nhanh các thống kê quan trọng của doanh nghiệp: Doanh số dự án, tỷ lệ phát hiện lỗi RT/UT, số lượng thiết bị cần hiệu chuẩn và chứng chỉ nhân sự sắp hết hạn.</p>
+        <h3>Thành phần Thanh Trạng Thái (Status Bar) ở đầu trang:</h3>
+        <ul class="steps">
+            <li class="step-item"><span class="step-number">1</span><strong>Đèn chỉ báo ONLINE / OFFLINE:</strong> Chớp nháy màu xanh lá khi máy khách có Internet và màu đỏ khi mất mạng.</li>
+            <li class="step-item"><span class="step-number">2</span><strong>Đồng bộ LIVE SYNCS:</strong> Đếm số lượng thay đổi dữ liệu được tích lũy cục bộ chưa đẩy lên Google Sheets (Offline Mode).</li>
+            <li class="step-item"><span class="step-number">3</span><strong>Nút REFRESH DATA:</strong> Tải lại dữ liệu mới nhất từ Google Sheets và chủ động đẩy các dữ liệu offline lên cloud.</li>
+            <li class="step-item"><span class="step-number">4</span><strong>Nút SYNC DRIVE:</strong> Mở popup đồng bộ và tự động tạo cây thư mục tài liệu lên Google Drive.</li>
+        </ul>
+
+        <h2 id="tab-marketing">2. Phân Hệ Marketing & Leads</h2>
+        <p>Phân hệ giúp quản lý danh sách khách hàng tiềm năng, theo dõi lịch sử tiếp cận và tiến độ chuyển đổi sang hợp đồng.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên trường dữ liệu</th>
+                    <th>Kiểu dữ liệu</th>
+                    <th>Mục đích sử dụng</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Lead ID</td>
+                    <td>Text (Tự động)</td>
+                    <td>Khóa chính trích xuất theo mã duy nhất.</td>
+                </tr>
+                <tr>
+                    <td>Client Name</td>
+                    <td>Text / Select</td>
+                    <td>Tên khách hàng hoặc công ty đối tác.</td>
+                </tr>
+                <tr>
+                    <td>Status</td>
+                    <td>Dropdown list</td>
+                    <td>Trạng thái tiếp cận: New, Contacted, In Progress, Won, Lost.</td>
+                </tr>
+                <tr>
+                    <td>Estimated Value</td>
+                    <td>Number (Currency)</td>
+                    <td>Dự toán giá trị hợp đồng nếu trúng thầu.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="tab-accounting">3. Phân Hệ Kế Toán Doanh Nghiệp</h2>
+        <p>Dành riêng cho vai trò Admin và Manager để quản lý dòng tiền, theo dõi công nợ khách hàng (AR Aging) và doanh thu dịch vụ kiểm định.</p>
+        <div class="alert alert-warning">
+            <strong>Phân quyền bảo mật:</strong> Các thông tin nhạy cảm như mức lương nhân viên, tài khoản ngân hàng được mã hóa hoặc ẩn hoàn toàn đối với vai trò Employee (Nhân viên).
+        </div>
+
+        <h2 id="tab-hr">4. Tuyển Dụng & Nhân Sự (HR & Certifications)</h2>
+        <p>Quản lý hồ sơ nhân viên, ngày phép, và đặc biệt là hệ thống **Chứng chỉ kiểm định NDT** (ASNT Level II, Level III, PCN...).
+        Hệ thống tự động quét ngày hết hạn chứng chỉ và hiển thị cảnh báo 3 cấp độ ở trang Báo Cáo.</p>
+
+        <h2 id="tab-projects">5. Quản Lý Dự Án & Tiến Độ</h2>
+        <p>Theo dõi các dự án kiểm định đang thi công tại công trường. Liên kết trực tiếp thông tin Khách hàng từ phân hệ Marketing để giữ tính toàn vẹn dữ liệu.</p>
+
+        <h2 id="tab-technical">6. Hồ Sơ Kỹ Thuật (WPS / Scanplan / Procedure)</h2>
+        <p>Nơi lưu trữ và phê duyệt các quy trình NDT (NDT Procedures), quy trình hàn (WPS/PQR) và bản vẽ phương án kiểm tra (Scanplan). Hỗ trợ xem tệp đính kèm và in PDF trực tiếp từ ứng dụng.</p>
+
+        <h2 id="tab-equipment">7. Quản Lý Thiết Bị NDT & Hiệu Chuẩn</h2>
+        <p>Theo dõi trạng thái hoạt động và ngày hiệu chuẩn định kỳ của các máy chụp phim RT, máy siêu âm UT, đầu dò Phased Array, thiết bị đo độ cứng. Tự động thông báo khi thiết bị sắp đến hạn kiểm định hiệu chuẩn.</p>
+
+        <h2 id="tab-welding">8. Quản Lý Hàn & Danh Sách Welder</h2>
+        <p>Tab chuyên biệt theo dõi thợ hàn (Welders) và vòng đời mối hàn (Weld Ledger):
+        * **Welder Database:** Lưu mã con dấu (Stamp No), phương pháp hàn được phê duyệt (WPS Qualified), và ngày hết hạn chứng chỉ hàn (WQT Expiry).
+        * **Weld Ledger:** Nhật ký vòng đời mối hàn gồm 11 sự kiện (Fit-up, Welding, Visual Inspection, NDT Testing, Repair Status, Final Accept). Tự động liên kết và trích xuất dữ liệu khi tạo Báo cáo NDT mới.</p>
+
+        <h2 id="tab-reports">9. Trung Tâm Báo Cáo (Reports Center)</h2>
+        <p>Hỗ trợ **14 mẫu báo cáo dựng sẵn** chia làm 3 nhóm chính: Kỹ thuật NDT, Tuân thủ an toàn bức xạ, và Tài chính dự án. Đặc biệt có báo cáo **Isotope Decay** tính toán chu kỳ bán rã hoạt độ nguồn phóng xạ (Ir-192, Se-75, Co-60) thời gian thực.</p>
+
+        <h2 id="chatbox-ai">Trợ Lý AI Thông Minh & Xuất Excel Tải Về</h2>
+        <p>Chatbox AI góc phải màn hình không chỉ trả lời câu hỏi thông thường, mà hoạt động như một AI Agent có quyền đọc toàn bộ cơ sở dữ liệu đang hiển thị trong app để trả lời thống kê.</p>
+        <div class="alert alert-info">
+            <strong>Ví dụ câu hỏi thống kê:</strong> "Hãy thống kê cho tôi số lượng chứng chỉ nhân viên hết hạn trong 90 ngày tới" hoặc "Có bao nhiêu thiết bị NDT đang bị hỏng cần sửa?".
+        </div>
+        <h3>Cách xuất Excel Dashboard và Pivot Table qua Chatbox:</h3>
+        <p>Gõ yêu cầu: <code>"Hãy lập báo cáo thống kê dự án và xuất Excel dashboard"</code> hoặc <code>"Tạo file excel pivot phân tích mối hàn"</code>.</p>
+        <p>Trợ lý AI sẽ tự động phân tích dữ liệu, vẽ bảng tổng hợp và cung cấp một **Thẻ tải xuống (Download Excel Report)**. Khi nhấp vào thẻ này, một tệp Excel chuyên nghiệp sẽ được tải về máy của bạn chứa 3 trang tính thiết kế chuẩn: Dashboard chỉ số KPI, Pivot Table bảng xoay dữ liệu và Raw Data dữ liệu chi tiết.</p>
+
+        <h2 id="error-diagnostics">Hệ Thống Theo Dõi Lỗi & Auto Prompt</h2>
+        <p>Ứng dụng tích hợp bộ theo dõi lỗi thông minh thời gian thực. Khi xảy ra lỗi kết nối Google Sheets (như lỗi quyền truy cập 403, sai ID bảng tính 404, hoặc lỗi server Vercel 405/500):</p>
+        <ul class="steps">
+            <li class="step-item"><span class="step-number">1</span>Hệ thống ghi nhận vết lỗi (Error Stack) và đồng bộ lên sheet <code>App_Errors</code> để các admin cùng theo dõi.</li>
+            <li class="step-item"><span class="step-number">2</span>Trong tab <strong>Settings $\rightarrow$ Nhật ký lỗi</strong>, Admin có thể nhấp vào dòng lỗi và chọn <strong>Copy Prompt</strong>.</li>
+            <li class="step-item"><span class="step-number">3</span>Dán mã Prompt này vào ChatGPT hoặc Gemini. AI sẽ lập tức hiểu toàn bộ vết lỗi hệ thống và cung cấp code sửa lỗi chuẩn xác nhất cho bạn.</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simple scrollspy to highlight active menu item
+        const links = document.querySelectorAll('.menu-link');
+        const sections = document.querySelectorAll('h1, h2');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            links.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

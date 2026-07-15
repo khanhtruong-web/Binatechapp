@@ -3,7 +3,7 @@ import {
   Building2, Users, Briefcase, FileText, BookOpen, PenTool, FileCheck, Target,
   LayoutDashboard, LogOut, Bot, GraduationCap, Settings as SettingsIcon,
   Database, RefreshCw, HardDrive, Wifi, WifiOff, Flame, ClipboardList, BarChart2,
-  Menu, Moon, Sun
+  Menu, Moon, Sun, HelpCircle
 } from 'lucide-react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -259,6 +259,24 @@ export default function App() {
               {t('AI Assistant', lang)}
             </span>
           </button>
+          
+          <a 
+            href="/Huong_dan_su_dung_BinatechERP.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={!isOpen ? (lang === 'vi' ? 'Hướng dẫn sử dụng' : 'User Guide') : undefined}
+            className={`w-full flex items-center bg-slate-900 hover:bg-slate-850 text-slate-350 border border-slate-900/30 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium cursor-pointer ${
+              isOpen ? 'px-4 justify-start' : 'px-0 justify-center'
+            }`}
+          >
+            <HelpCircle className="w-5 h-5 flex-shrink-0 text-amber-500" />
+            <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${
+              isOpen ? 'opacity-100 w-auto ml-3 block' : 'opacity-0 w-0 hidden'
+            }`}>
+              {lang === 'vi' ? 'Hướng dẫn sử dụng' : 'User Guide'}
+            </span>
+          </a>
+
           <button 
             onClick={() => setIsAuthenticated(false)}
             title={!isOpen ? t('Sign Out', lang) : undefined}

@@ -9,6 +9,7 @@ import { loadModuleData } from '../lib/dataClient';
 
 import { Lang, t, translateOption } from '../lib/translations';
 import { printRecord } from '../lib/printReport';
+import { trackAppError } from '../lib/errorTracker';
 
 interface ModuleViewProps {
   schema: ModuleSchema;
@@ -65,6 +66,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
       }
     } catch (err: any) {
       console.error('Error fetching sheets data:', err);
+      trackAppError(err, schema.name);
       setFetchError(err.message || 'Mẫu kết nối Google Sheets chưa được định cấu hình chính xác.');
       
       // Fallback to local storage cache so app remains functional
@@ -220,6 +222,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
       setSelectedRecord(null);
     } catch (err: any) {
       console.error('Error saving to Google Sheets:', err);
+      trackAppError(err, schema.name);
       setFetchError(err.message || 'Lỗi khi đồng bộ dữ liệu với Google Sheets.');
 
       // Fallback saving locally to keep app fully functional
@@ -272,6 +275,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
       await fetchRows();
     } catch (err: any) {
       console.error('Error deleting record:', err);
+      trackAppError(err, schema.name);
       // Local fallback so the UI stays consistent offline
       const newDataArray = data.filter(item => String(item[schema.primaryKey]) !== idValue);
       setData(newDataArray);
