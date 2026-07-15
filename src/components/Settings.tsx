@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Database, Key, Shield, User, Save, CheckCircle2, AlertTriangle, Copy, Check, FileText, Trash2, HelpCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Database, Key, Shield, User, Save, CheckCircle2, AlertTriangle, Copy, Check, FileText, Trash2, HelpCircle, Loader2 } from 'lucide-react';
 
 interface AppError {
   errorId: string;
@@ -18,11 +18,13 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
   const [serviceAccountJson, setServiceAccountJson] = useState('');
   const [userRole, setUserRole] = useState('Admin');
   const [isSaved, setIsSaved] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
 
   // Error logging state
   const [errorLogs, setErrorLogs] = useState<AppError[]>([]);
   const [expandedErrorId, setExpandedErrorId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
     setGoogleClientId(localStorage.getItem('VITE_GOOGLE_CLIENT_ID') || import.meta.env.VITE_GOOGLE_CLIENT_ID || '');
@@ -86,10 +88,91 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
     }, 1200);
   };
 
+  const handleAutoSetup = async () => {
+    if (!serviceAccountJson) {
+      alert(lang === 'vi' ? 'Vui lòng dán GOOGLE_SERVICE_ACCOUNT_JSON trước!' : 'Please paste GOOGLE_SERVICE_ACCOUNT_JSON first!');
+      return;
+    }
+    
+    setIsSettingUp(true);
+    try {
+      const token = localStorage.getItem('BINATECH_GOOGLE_TOKEN');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/settings/auto-setup', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          serviceAccountJson,
+          userEmail: userInfo?.email || '',
+          accessToken: token || undefined
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error (${res.status})`);
+      }
+
+      const result = await res.json();
+      setGoogleSheetsId(result.googleSheetsId);
+      
+      // Save locally
+      localStorage.setItem('GOOGLE_SHEETS_DATABASE_ID', result.googleSheetsId);
+      localStorage.setItem('GOOGLE_SERVICE_ACCOUNT_JSON', serviceAccountJson);
+      
+      alert(lang === 'vi' 
+        ? 'Tạo cơ sở dữ liệu Sheets & Folder Drive thành công! Hệ thống đang tải lại trang để kích hoạt.' 
+        : 'Successfully set up Google Sheets and Drive folders! Page is reloading...');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err: any) {
+      console.error('Auto-setup failed:', err);
+      alert((lang === 'vi' ? 'Không thể thiết lập tự động: ' : 'Auto-setup failed: ') + (err.message || String(err)));
+    } finally {
+      setIsSettingUp(false);
+    }
+  };
+
   const handleCopyPrompt = (id: string, prompt: string) => {
     navigator.clipboard.writeText(prompt);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1550);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const handleCopyAllErrors = () => {
+    if (errorLogs.length === 0) return;
+    
+    // Compile a comprehensive prompt of all captured errors
+    const errorDetails = errorLogs.map((log, idx) => {
+      return `[LỖI KHÁCH HÀNG #${idx + 1} - Mã: ${log.errorId}]
+- Thời gian: ${log.timestamp}
+- Phân hệ xảy ra: ${log.userEmail.split('@')[0]} (Tài khoản: ${log.userEmail})
+- Thông điệp lỗi: ${log.errorMessage}
+- Stack trace: ${log.errorStack || 'Không có chi tiết stack.'}`;
+    }).join('\n\n---\n\n');
+
+    const prompt = `[LỖI TOÀN CỤC HỆ THỐNG BINATECH ERP]
+Dưới đây là danh sách toàn bộ các lỗi ghi nhận được từ hoạt động đồng bộ Google Sheets của tất cả tài khoản sử dụng app:
+
+${errorDetails}
+
+[YÊU CẦU CHO AI]
+1. Hãy nghiên cứu kỹ tài liệu LESSONS_LEARNED.md của dự án để tránh các lỗi lặp lại.
+2. Hãy phân tích các mã lỗi hệ thống ở trên, tìm nguyên nhân gốc rễ (Root Cause) và cung cấp mã nguồn (code) sửa lỗi chi tiết cho các tệp tin liên quan.
+3. Đảm bảo sửa hoàn chỉnh cả phần xử lý lỗi logic phía client/server và thiết kế tối ưu giao diện (UI) hiển thị phù hợp.`;
+
+    navigator.clipboard.writeText(prompt);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
   };
 
   const handleClearLogs = () => {
@@ -106,7 +189,7 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{lang === 'vi' ? 'Cấu Hình Hệ Thống' : 'System Settings'}</h2>
-            <p className="text-slate-500 dark:text-slate-400">{lang === 'vi' ? 'Định cấu hình các thông số kết nối API Google Workspace và thiết lập ứng dụng.' : 'Configure your connection to Google Workspace APIs and application defaults.'}</p>
+            <p className="text-slate-505 text-slate-500 dark:text-slate-400">{lang === 'vi' ? 'Định cấu hình các thông số kết nối API Google Workspace và thiết lập ứng dụng.' : 'Configure your connection to Google Workspace APIs and application defaults.'}</p>
           </div>
           <div className="flex items-center space-x-3">
             {/* Direct Link to HTML User Guide */}
@@ -146,7 +229,7 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
               )}
               <div>
                 <p className="font-medium text-slate-800 dark:text-slate-100 text-lg">{userInfo?.name || 'Unknown User'}</p>
-                <p className="text-slate-505 dark:text-slate-400">{userInfo?.email || 'No email provided'}</p>
+                <p className="text-slate-500 dark:text-slate-400">{userInfo?.email || 'No email provided'}</p>
               </div>
             </div>
             
@@ -192,7 +275,7 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
           </div>
         </div>
 
-        {/* Keys Preview (readonly) */}
+        {/* Keys Preview (override) */}
         <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden dark:bg-slate-850 dark:border-slate-800">
           <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center space-x-3 dark:bg-slate-800/50 dark:border-slate-800">
             <Key className="w-5 h-5 text-slate-500" />
@@ -225,13 +308,45 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
             
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">GOOGLE_SHEETS_DATABASE_ID (Server)</label>
-              <input 
-                type="text" 
-                value={googleSheetsId} 
-                onChange={(e) => setGoogleSheetsId(e.target.value)}
-                placeholder="ID of the Google Sheet (e.g., 1BxiMVs0X_...)"
-                className="w-full bg-white border border-slate-300 text-slate-800 rounded-md py-2 px-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-              />
+              <div className="flex gap-3">
+                <input 
+                  type="text" 
+                  value={googleSheetsId} 
+                  onChange={(e) => setGoogleSheetsId(e.target.value)}
+                  placeholder="ID of the Google Sheet (e.g., 1BxiMVs0X_...)"
+                  className="flex-1 bg-white border border-slate-300 text-slate-800 rounded-md py-2 px-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAutoSetup}
+                  disabled={!serviceAccountJson || isSettingUp}
+                  className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-sm border transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                    isSettingUp
+                      ? 'bg-slate-100 border-slate-200 text-slate-400'
+                      : !serviceAccountJson
+                      ? 'bg-slate-50 border-slate-200 text-slate-450 cursor-not-allowed'
+                      : 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700'
+                  }`}
+                  title={!serviceAccountJson ? "Cần dán GOOGLE_SERVICE_ACCOUNT_JSON trước" : "Tự động tạo Sheet & Thư mục Drive"}
+                >
+                  {isSettingUp ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>{lang === 'vi' ? 'Đang tạo...' : 'Setting up...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-3.5 h-3.5" />
+                      <span>{lang === 'vi' ? 'Tự Động Tạo Sheet & Drive' : 'Auto Setup Sheet & Drive'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-450 mt-1">
+                {lang === 'vi' 
+                  ? 'Nếu bạn chưa cấu hình Google Sheet, chỉ cần dán Service Account JSON ở ô dưới rồi bấm nút Tự Động Tạo bên cạnh.' 
+                  : 'If you have not created a Google Sheet yet, paste the Service Account JSON below and click the Auto Setup button.'}
+              </p>
             </div>
 
             <div>
@@ -240,7 +355,7 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
                 value={serviceAccountJson} 
                 onChange={(e) => setServiceAccountJson(e.target.value)}
                 placeholder="{ ... }"
-                className="w-full bg-white border border-slate-300 text-slate-800 rounded-md py-2 px-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                className="w-full bg-white border border-slate-300 text-slate-800 rounded-md py-2 px-3 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] dark:bg-slate-800 dark:border-slate-700 dark:text-white"
               />
             </div>
 
@@ -256,15 +371,30 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
                 {lang === 'vi' ? 'Nhật ký Lỗi Hệ thống & Trợ lý Chẩn đoán' : 'System Error Logs & AI Diagnostic'}
               </h3>
             </div>
-            {errorLogs.length > 0 && (
-              <button 
-                onClick={handleClearLogs}
-                className="flex items-center space-x-1.5 text-xs text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 px-2.5 py-1.5 rounded-lg border border-rose-200 transition-all font-medium cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{lang === 'vi' ? 'Xóa Nhật Ký' : 'Clear Logs'}</span>
-              </button>
-            )}
+            <div className="flex items-center space-x-2">
+              {errorLogs.length > 0 && (
+                <>
+                  <button 
+                    onClick={handleCopyAllErrors}
+                    className={`flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all font-medium cursor-pointer shadow-sm ${
+                      copiedAll
+                        ? 'bg-emerald-600 border-emerald-500 text-white'
+                        : 'bg-white border-slate-300 text-slate-750 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedAll ? (lang === 'vi' ? 'Đã copy tất cả!' : 'Copied All!') : (lang === 'vi' ? 'Copy Tất cả Lỗi & Prompt AI' : 'Copy All Errors & AI Prompt')}</span>
+                  </button>
+                  <button 
+                    onClick={handleClearLogs}
+                    className="flex items-center space-x-1.5 text-xs text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 px-2.5 py-1.5 rounded-lg border border-rose-200 transition-all font-medium cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{lang === 'vi' ? 'Xóa Nhật Ký' : 'Clear Logs'}</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           
           <div className="p-6">

@@ -16,6 +16,8 @@ import {
 } from './src/server/lib/googleWorkspace.js';
 // import { createFolder, copyFile, uploadToDrive } from './src/server/lib/googleDrive.js';
 // import { injectDataIntoDocxTemplate } from './src/server/lib/docGenerator.js';
+import { clearGoogleAuthCache, getGoogleAuth } from './src/server/lib/googleAuth.js';
+import { google } from 'googleapis';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,10 +56,163 @@ async function startServer() {
         serviceAccountJson
       };
       fs.writeFileSync('server-config.json', JSON.stringify(config, null, 2), 'utf8');
+      // Clear the cached auth client to enforce reloading new keys
+      clearGoogleAuthCache();
       res.json({ status: "ok", message: "Settings saved to server config successfully." });
     } catch (error: any) {
       console.error(error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Automated Google Sheet Database & Folders Setup
+  app.post("/api/settings/auto-setup", async (req, res) => {
+    try {
+      const { serviceAccountJson, userEmail, accessToken } = req.body;
+      if (!serviceAccountJson) {
+        return res.status(400).json({ error: "Service Account JSON is required." });
+      }
+
+      // 1. Save config temporarily so we can authenticate
+      const tempConfig = {
+        googleClientId: '',
+        geminiApiKey: '',
+        googleSheetsId: '',
+        serviceAccountJson
+      };
+      
+      // Preserve existing Client ID & Gemini API key if they exist
+      try {
+        if (fs.existsSync('server-config.json')) {
+          const existing = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
+          tempConfig.googleClientId = existing.googleClientId || '';
+          tempConfig.geminiApiKey = existing.geminiApiKey || '';
+        }
+      } catch (e) {}
+      
+      fs.writeFileSync('server-config.json', JSON.stringify(tempConfig, null, 2), 'utf8');
+      
+      // Clear the cached auth client to enforce loading new key
+      clearGoogleAuthCache();
+      
+      // 2. Authenticate
+      const auth = await getGoogleAuth(accessToken);
+      if (!auth) {
+        throw new Error("Failed to initialize Google Auth client with the provided JSON Key.");
+      }
+      
+      const sheets = google.sheets({ version: 'v4', auth });
+      const drive = google.drive({ version: 'v3', auth });
+      
+      // 3. Create Google Sheet Spreadsheet
+      console.log("[Auto-setup] Creating spreadsheet Binatech_NDT_ERP_Database...");
+      const spreadsheet = await sheets.spreadsheets.create({
+        requestBody: {
+          properties: {
+            title: 'Binatech_NDT_ERP_Database',
+          }
+        },
+        fields: 'spreadsheetId'
+      });
+      const spreadsheetId = spreadsheet.data.spreadsheetId;
+      if (!spreadsheetId) throw new Error("Failed to create spreadsheet.");
+
+      // 4. Setup sheets/tabs with headers
+      const sheetHeaders: Record<string, string[]> = {
+        'Marketing': ['leadId', 'clientName', 'contactPerson', 'email', 'phone', 'status', 'value', 'assignedTo', 'notes', 'lastContactDate'],
+        'Accounting': ['invoiceId', 'clientName', 'project', 'amount', 'status', 'dueDate', 'paymentDate', 'billingAddress', 'taxId', 'notes'],
+        'HR (Personnel)': ['employeeId', 'fullName', 'role', 'department', 'status', 'certifications', 'certExpiry', 'email', 'phone', 'hireDate', 'emergencyContact'],
+        'Project Control': ['projectId', 'projectName', 'clientName', 'value', 'status', 'startDate', 'endDate', 'manager', 'location', 'description'],
+        'Technical Dossier': ['dossierId', 'title', 'project', 'author', 'status', 'approvalDate', 'fileName', 'fileUrl', 'category', 'notes'],
+        'Training': ['trainingId', 'employeeName', 'courseTitle', 'provider', 'status', 'dateCompleted', 'expiryDate', 'score', 'certificateUrl', 'notes'],
+        'Equipment': ['equipmentId', 'name', 'serialNumber', 'category', 'status', 'calibrationDate', 'calibrationDue', 'location', 'assignedTo', 'notes'],
+        'NDT Reports': ['reportId', 'projectName', 'method', 'inspector', 'reportDate', 'status', 'welderName', 'jointNo', 'defects', 'remarks', 'fileUrl'],
+        'Welders': ['welderId', 'name', 'stampNo', 'process', 'qualifiedWPS', 'positions', 'thicknessRange', 'wqtCertNo', 'expiry', 'remarks'],
+        'Weld Ledger': ['ledgerId', 'jointNo', 'projectName', 'welderStamp', 'weldDate', 'fitUpStatus', 'visualStatus', 'ndtStatus', 'repairStatus', 'finalStatus', 'updatedAt'],
+        'Audit Log': ['auditId', 'timestamp', 'userEmail', 'action', 'module', 'recordId', 'details'],
+        'App_Errors': ['errorId', 'timestamp', 'userEmail', 'errorMessage', 'errorStack', 'diagnosticPrompt', 'status'],
+        'Tender Dossier': ['tenderId', 'title', 'clientName', 'submissionDate', 'status', 'value', 'manager', 'documents', 'remarks']
+      };
+
+      const requests: any[] = [{
+        updateSheetProperties: {
+          properties: {
+            sheetId: 0,
+            title: 'Marketing'
+          },
+          fields: 'title'
+        }
+      }];
+
+      const otherSheets = Object.keys(sheetHeaders).filter(name => name !== 'Marketing');
+      otherSheets.forEach(name => {
+        requests.push({
+          addSheet: {
+            properties: {
+              title: name
+            }
+          }
+        });
+      });
+
+      console.log("[Auto-setup] Creating tabs inside spreadsheet...");
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests }
+      });
+
+      // Write column headers
+      console.log("[Auto-setup] Writing column headers to tabs...");
+      const batchData = Object.entries(sheetHeaders).map(([sheetName, headers]) => ({
+        range: `${sheetName}!A1`,
+        values: [headers]
+      }));
+      
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: batchData
+        }
+      });
+
+      // 5. Share spreadsheet with userEmail (if provided)
+      if (userEmail && userEmail.includes('@')) {
+        console.log(`[Auto-setup] Sharing spreadsheet with user ${userEmail}...`);
+        try {
+          await drive.permissions.create({
+            fileId: spreadsheetId,
+            requestBody: {
+              type: 'user',
+              role: 'writer',
+              emailAddress: userEmail
+            }
+          });
+        } catch (shareErr) {
+          console.warn("Could not share spreadsheet with user email (permissions error):", shareErr);
+        }
+      }
+
+      // 6. Create Google Drive Folder structure
+      console.log("[Auto-setup] Creating Google Drive folder structure...");
+      try {
+        await syncDriveFolders(accessToken);
+      } catch (driveErr) {
+        console.warn("Failed to create Drive folders, but spreadsheet was created successfully:", driveErr);
+      }
+
+      // 7. Write spreadsheet ID to final config
+      tempConfig.googleSheetsId = spreadsheetId;
+      fs.writeFileSync('server-config.json', JSON.stringify(tempConfig, null, 2), 'utf8');
+
+      res.json({
+        status: "ok",
+        googleSheetsId: spreadsheetId,
+        message: "Spreadsheet database and Google Drive folders auto-setup completed successfully."
+      });
+    } catch (error: any) {
+      console.error("[Auto-setup Error]", error);
+      res.status(500).json({ error: error.message || String(error) });
     }
   });
 

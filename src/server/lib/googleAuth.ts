@@ -59,3 +59,8 @@ export async function getGoogleAuth(accessToken?: string) {
   }
 }
 
+export function clearGoogleAuthCache() {
+  serviceAuthClient = null;
+}
+
+
