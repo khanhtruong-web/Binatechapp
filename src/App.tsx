@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Users, Briefcase, FileText, BookOpen, PenTool, FileCheck, Target,
-  LayoutDashboard, LogOut, Bot, GraduationCap, Settings as SettingsIcon
+  LayoutDashboard, LogOut, Bot, GraduationCap, Settings as SettingsIcon,
+  Database, RefreshCw, HardDrive, Wifi, WifiOff
 } from 'lucide-react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -14,6 +15,7 @@ import HRPersonnel from './components/HRPersonnel';
 import BinatechLogo from './components/BinatechLogo';
 import { MODULE_SCHEMAS } from './lib/schemas';
 import { Lang, t, localizeSchema } from './lib/translations';
+import { getCachedToken } from './lib/authCache';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,6 +25,48 @@ export default function App() {
   );
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('BINATECH_LANG') as Lang) || 'vi');
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  
+  // Connection and Sync states
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingSyncs, setPendingSyncs] = useState(0);
+  const [lastSyncTime, setLastSyncTime] = useState(() => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
+  });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const handleSyncEvent = () => {
+      setPendingSyncs(prev => prev + 1);
+      const now = new Date();
+      setLastSyncTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase());
+    };
+    window.addEventListener('binatech-sync-event-added', handleSyncEvent);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('binatech-sync-event-added', handleSyncEvent);
+    };
+  }, []);
+
+  const handleGlobalRefresh = () => {
+    setIsRefreshing(true);
+    window.dispatchEvent(new Event('binatech-refresh-data'));
+    
+    // Simulate sheet sync finish
+    setTimeout(() => {
+      setPendingSyncs(0);
+      const now = new Date();
+      setLastSyncTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase());
+      setIsRefreshing(false);
+    }, 850);
+  };
 
   const toggleLang = () => {
     const next = lang === 'vi' ? 'en' : 'vi';
@@ -190,6 +234,55 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Status Bar */}
+        <div className="h-14 bg-white border-b border-neutral-200 flex items-center justify-between px-6 z-10 select-none shadow-sm flex-shrink-0">
+          <div className="flex items-center space-x-6">
+            <span className="text-sm font-bold text-slate-800 uppercase tracking-wider">{t(activeTab, lang)}</span>
+            
+            {/* Connection Status */}
+            <div className="flex items-center space-x-2 border-l border-slate-200 pl-6 h-6">
+              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500 animate-pulse'}`} />
+              <span className="text-[10px] font-bold text-slate-650 uppercase tracking-wider">
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </span>
+            </div>
+            
+            {/* Sync counter */}
+            <div className="flex items-center space-x-2 border-l border-slate-200 pl-6 h-6">
+              <Database className="w-4 h-4 text-slate-400" />
+              <div className="flex flex-col leading-none">
+                <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">
+                  LIVE SYNCS <span className="text-[9px] font-mono lowercase">({lastSyncTime})</span>
+                </span>
+                <span className="text-xs font-bold text-slate-700">
+                  {pendingSyncs > 0 ? `${pendingSyncs} ${pendingSyncs === 1 ? 'Event' : 'Events'}` : 'Synced'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            {/* Drive sync button */}
+            <button 
+              onClick={() => setShowSyncModal(true)}
+              className="flex items-center space-x-2 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-655 transition-all active:scale-95 cursor-pointer"
+            >
+              <HardDrive className="w-3.5 h-3.5" />
+              <span>SYNC DRIVE</span>
+            </button>
+
+            {/* Refresh Data button */}
+            <button 
+              onClick={handleGlobalRefresh}
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-250 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-550 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>REFRESH DATA</span>
+            </button>
+          </div>
+        </div>
+
         {/* Dynamic Content Container */}
         {activeTab === 'Dashboard' ? (
           <Dashboard onSync={() => setShowSyncModal(true)} lang={lang} />

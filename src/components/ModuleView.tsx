@@ -84,6 +84,14 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
     } else {
       setIsOfflineMode(false);
     }
+
+    const handleGlobalRefresh = () => {
+      fetchRows();
+    };
+    window.addEventListener('binatech-refresh-data', handleGlobalRefresh);
+    return () => {
+      window.removeEventListener('binatech-refresh-data', handleGlobalRefresh);
+    };
   }, [schema.id]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -146,6 +154,10 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
       }
       setData(newDataArray);
       localStorage.setItem(`binatech_mock_${schema.id}`, JSON.stringify(newDataArray));
+
+      // Dispatch event to update the status bar live syncs count
+      window.dispatchEvent(new Event('binatech-sync-event-added'));
+      
       setIsEditing(false);
       setSelectedRecord(null);
     } finally {
