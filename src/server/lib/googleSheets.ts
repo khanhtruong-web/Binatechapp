@@ -206,6 +206,52 @@ export async function updateRow(sheetName: string, idColumn: string, idValue: st
   }
 }
 
+export interface HealthStatus {
+  hasServiceAccount: boolean;
+  hasSheetsId: boolean;
+  sheetsReachable: boolean;
+  missingSheets: string[];
+  mode: 'google-sheets' | 'local-fallback';
+  error: string;
+}
+
+/** Preflight check: is Google config present and is the spreadsheet reachable & complete? */
+export async function checkHealth(requiredSheets: string[] = []): Promise<HealthStatus> {
+  const result: HealthStatus = {
+    hasServiceAccount: false,
+    hasSheetsId: false,
+    sheetsReachable: false,
+    missingSheets: [],
+    mode: 'local-fallback',
+    error: ''
+  };
+
+  try {
+    if (fs.existsSync('server-config.json')) {
+      const config = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
+      if (config.serviceAccountJson) result.hasServiceAccount = true;
+      if (config.googleSheetsId) result.hasSheetsId = true;
+    }
+  } catch (e) { /* unreadable config counts as absent */ }
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) result.hasServiceAccount = true;
+  if (process.env.GOOGLE_SHEETS_DATABASE_ID) result.hasSheetsId = true;
+
+  if (!result.hasServiceAccount || !result.hasSheetsId) return result;
+
+  try {
+    const sheets = await getSheetsClient();
+    const spreadsheetId = await getSpreadsheetId();
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const titles = (meta.data.sheets || []).map(s => s.properties?.title || '');
+    result.sheetsReachable = true;
+    result.mode = 'google-sheets';
+    result.missingSheets = requiredSheets.filter(t => !titles.includes(t));
+  } catch (err: any) {
+    result.error = err.message || String(err);
+  }
+  return result;
+}
+
 export async function deleteRow(sheetName: string, idColumn: string, idValue: string, accessToken?: string) {
   if (!accessToken && !hasGoogleConfig()) {
     console.log(`[Google Sheets fallback] No configuration found. Deleting ${sheetName} row in local file db.`);

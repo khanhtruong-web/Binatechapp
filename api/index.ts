@@ -3,7 +3,7 @@ import multer from "multer";
 import fs from 'fs';
 import path from 'path';
 
-import { getRows, addRow, updateRow } from '../src/server/lib/googleSheets.js';
+import { getRows, addRow, updateRow, checkHealth } from '../src/server/lib/googleSheets.js';
 import { 
   listDriveFiles, 
   syncDriveFolders, 
@@ -24,6 +24,20 @@ const getAccessToken = (req: express.Request) => {
   }
   return undefined;
 };
+
+// Preflight health check for Admin warning banner
+const REQUIRED_SHEETS = [
+  'Marketing', 'Accounting', 'HR (Personnel)', 'Project Control', 'Technical Dossier',
+  'Training', 'Equipment', 'NDT Reports', 'Tender Dossier', 'Welders', 'Weld Ledger', 'Audit Log'
+];
+app.get("/api/health", async (_req, res) => {
+  try {
+    const status = await checkHealth(REQUIRED_SHEETS);
+    res.json(status);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Settings Save
 app.post("/api/settings/save", (req, res) => {

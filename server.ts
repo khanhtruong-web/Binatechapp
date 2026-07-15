@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 // Import actual Google Sheets utilities
-import { getRows, addRow, updateRow, deleteRow } from './src/server/lib/googleSheets.js';
+import { getRows, addRow, updateRow, deleteRow, checkHealth } from './src/server/lib/googleSheets.js';
 import { 
   listDriveFiles, 
   syncDriveFolders, 
@@ -28,6 +28,20 @@ async function startServer() {
   app.use(express.json());
 
   // === API ROUTES ===
+
+  // Preflight health check for Admin warning banner
+  const REQUIRED_SHEETS = [
+    'Marketing', 'Accounting', 'HR (Personnel)', 'Project Control', 'Technical Dossier',
+    'Training', 'Equipment', 'NDT Reports', 'Tender Dossier', 'Welders', 'Weld Ledger', 'Audit Log'
+  ];
+  app.get("/api/health", async (_req, res) => {
+    try {
+      const status = await checkHealth(REQUIRED_SHEETS);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Settings Save to Server Configuration
   app.post("/api/settings/save", (req, res) => {

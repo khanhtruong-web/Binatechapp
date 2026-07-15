@@ -144,3 +144,81 @@
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
+
+/* ========================================
+   BINATECH NDT — Dark Contrast Theme
+   Toggled by adding `dark` class on <html>
+   (see App.tsx darkMode state).
+   Overrides the light utility classes used
+   across the app without touching markup.
+   ======================================== */
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Surfaces */
+html.dark .bg-white { background-color: #1e293b !important; }
+html.dark .bg-neutral-100 { background-color: #0f172a !important; }
+html.dark .bg-neutral-50,
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark .bg-slate-200 { background-color: #16213a !important; }
+html.dark .bg-blue-50 { background-color: #1e3a5f !important; }
+html.dark .bg-blue-50\/40, html.dark .bg-blue-50\/50 { background-color: rgba(30, 58, 95, 0.6) !important; }
+html.dark .bg-amber-50 { background-color: #3a2e10 !important; }
+html.dark .bg-rose-50, html.dark .bg-red-50 { background-color: #3d1a24 !important; }
+html.dark .bg-emerald-100 { background-color: #10352a !important; }
+html.dark .bg-blue-100 { background-color: #1e3a5f !important; }
+html.dark .bg-amber-200 { background-color: #705c1d !important; }
+
+/* Text */
+html.dark .text-neutral-900, html.dark .text-slate-900,
+html.dark .text-neutral-800, html.dark .text-slate-800 { color: #e2e8f0 !important; }
+html.dark .text-neutral-700, html.dark .text-slate-700,
+html.dark .text-neutral-600, html.dark .text-slate-600,
+html.dark .text-slate-650, html.dark .text-slate-655 { color: #cbd5e1 !important; }
+html.dark .text-neutral-500, html.dark .text-slate-500,
+html.dark .text-neutral-400, html.dark .text-slate-400,
+html.dark .text-slate-550 { color: #94a3b8 !important; }
+html.dark .text-amber-800, html.dark .text-amber-900 { color: #fcd34d !important; }
+html.dark .text-amber-700 { color: #fbbf24 !important; }
+html.dark .text-rose-800, html.dark .text-red-700 { color: #fda4af !important; }
+html.dark .text-blue-700, html.dark .text-blue-900 { color: #93c5fd !important; }
+
+/* Borders */
+html.dark .border-neutral-200, html.dark .border-slate-200,
+html.dark .border-neutral-300, html.dark .border-slate-300,
+html.dark .border-slate-100, html.dark .border-slate-250,
+html.dark .border-slate-350 { border-color: #334155 !important; }
+html.dark .border-blue-200 { border-color: #1d4ed8 !important; }
+html.dark .border-amber-200 { border-color: #705c1d !important; }
+html.dark .border-rose-200, html.dark .border-red-200 { border-color: #7f1d3a !important; }
+
+/* Hovers */
+html.dark .hover\:bg-neutral-50:hover, html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-neutral-100:hover, html.dark .hover\:bg-slate-100:hover { background-color: #253352 !important; }
+html.dark .hover\:bg-blue-50:hover { background-color: #1e3a5f !important; }
+html.dark .hover\:bg-blue-100:hover { background-color: #274b78 !important; }
+html.dark .hover\:bg-rose-50:hover { background-color: #3d1a24 !important; }
+
+/* Form controls */
+html.dark input, html.dark select, html.dark textarea {
+  background-color: #16213a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+html.dark input::placeholder, html.dark textarea::placeholder { color: #64748b !important; }
+html.dark input:disabled, html.dark select:disabled, html.dark textarea:disabled {
+  background-color: #101a30 !important;
+  color: #94a3b8 !important;
+}
+html.dark option { background-color: #16213a; color: #e2e8f0; }
+
+/* Tables */
+html.dark thead { background-color: #16213a !important; }
+html.dark .divide-neutral-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-neutral-100 > :not([hidden]) ~ :not([hidden]) { border-color: #2a3854 !important; }
+
+/* Shadows are too harsh on dark surfaces */
+html.dark .shadow-sm, html.dark .shadow-xl, html.dark .shadow-2xl { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important; }

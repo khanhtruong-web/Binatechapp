@@ -3,7 +3,7 @@ import {
   Building2, Users, Briefcase, FileText, BookOpen, PenTool, FileCheck, Target,
   LayoutDashboard, LogOut, Bot, GraduationCap, Settings as SettingsIcon,
   Database, RefreshCw, HardDrive, Wifi, WifiOff, Flame, ClipboardList, BarChart2,
-  Menu
+  Menu, Moon, Sun
 } from 'lucide-react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -14,6 +14,7 @@ import Settings from './components/Settings';
 import QuotationGenerator from './components/QuotationGenerator';
 import HRPersonnel from './components/HRPersonnel';
 import ReportsTab from './components/ReportsTab';
+import AdminHealthBanner from './components/AdminHealthBanner';
 import BinatechLogo from './components/BinatechLogo';
 import { MODULE_SCHEMAS } from './lib/schemas';
 import { Lang, t, localizeSchema } from './lib/translations';
@@ -27,6 +28,13 @@ export default function App() {
   );
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('BINATECH_LANG') as Lang) || 'vi');
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('BINATECH_DARK') === '1');
+
+  // Dark contrast theme: toggles the `dark` class on <html> (styles in index.css)
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('BINATECH_DARK', darkMode ? '1' : '0');
+  }, [darkMode]);
   const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
     return localStorage.getItem('BINATECH_SIDEBAR_PINNED') === 'true';
   });
@@ -327,8 +335,22 @@ export default function App() {
               <RefreshCw className={`w-3.5 h-3.5 text-slate-550 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>REFRESH DATA</span>
             </button>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDarkMode(prev => !prev)}
+              title={darkMode ? (lang === 'vi' ? 'Chế độ sáng' : 'Light mode') : (lang === 'vi' ? 'Chế độ tối' : 'Dark mode')}
+              className="flex items-center space-x-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              {darkMode ? <Sun className="w-3.5 h-3.5 text-amber-500" /> : <Moon className="w-3.5 h-3.5 text-slate-500" />}
+            </button>
           </div>
         </div>
+
+        {/* Admin preflight warnings (config / Sheets connectivity) */}
+        {userRole === 'Admin' && (
+          <AdminHealthBanner lang={lang} onOpenSettings={() => setActiveTab('Settings')} />
+        )}
 
         {/* Dynamic Content Container */}
         {activeTab === 'Dashboard' ? (

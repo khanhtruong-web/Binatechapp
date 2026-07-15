@@ -109,8 +109,14 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
           {status === 'error' && errorMessage && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex gap-2 items-start animate-fade-in-up">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div className="leading-relaxed">
-                <span className="font-semibold">Đồng bộ thất bại:</span> {errorMessage}
+              <div className="leading-relaxed space-y-1.5">
+                <p><span className="font-semibold">Đồng bộ thất bại:</span> {errorMessage}</p>
+                <div className="bg-white/60 border border-red-100 rounded-lg p-2.5 text-red-800">
+                  <p className="font-semibold mb-1">Cách khắc phục (chọn 1 trong 2):</p>
+                  <p><strong>Cách 1 — Đăng nhập Google:</strong> đăng xuất và đăng nhập lại bằng nút "Sign in with Google Workspace" ở màn hình Login, sau đó bấm Retry Sync.</p>
+                  <p className="mt-1"><strong>Cách 2 — Service Account:</strong> vào <strong>Settings</strong> → dán <strong>GOOGLE_SERVICE_ACCOUNT_JSON</strong> (file key .json tải từ Google Cloud) + <strong>GOOGLE_SHEETS_DATABASE_ID</strong> → bấm <strong>Save</strong> → quay lại Retry Sync.</p>
+                  <p className="mt-1 text-red-600">Đồng thời kiểm tra: đã bật <strong>Google Drive API</strong> và <strong>Google Sheets API</strong> trong Google Cloud Console; spreadsheet đã share cho email service account (quyền Editor).</p>
+                </div>
               </div>
             </div>
           )}
