@@ -4,11 +4,18 @@ import { getCachedToken } from '../lib/authCache';
 
 const FOLDERS_TO_SYNC = [
   'Binatech ERP Master',
+  'Binatech ERP Master/Quotations',
   'Binatech ERP Master/Marketing',
+  'Binatech ERP Master/Accounting & Invoices',
   'Binatech ERP Master/HR Documents',
-  'Binatech ERP Master/NDT Reports',
+  'Binatech ERP Master/Project Control',
   'Binatech ERP Master/Technical Dossier',
-  'Binatech ERP Master/Equipment Certificates'
+  'Binatech ERP Master/Training Certificates',
+  'Binatech ERP Master/Equipment Certificates',
+  'Binatech ERP Master/NDT Reports',
+  'Binatech ERP Master/Weld Ledger',
+  'Binatech ERP Master/Welders & WQT',
+  'Binatech ERP Master/Tender Dossier'
 ];
 
 export default function DriveSyncModal({ onClose }: { onClose: () => void }) {

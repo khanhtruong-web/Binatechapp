@@ -115,11 +115,18 @@ export async function syncDriveFolders(accessToken?: string) {
 
     // 2. Create/find subfolders
     const subfolders = [
+      'Quotations',
       'Marketing',
+      'Accounting & Invoices',
       'HR Documents',
-      'NDT Reports',
+      'Project Control',
       'Technical Dossier',
-      'Equipment Certificates'
+      'Training Certificates',
+      'Equipment Certificates',
+      'NDT Reports',
+      'Weld Ledger',
+      'Welders & WQT',
+      'Tender Dossier'
     ];
 
     let createdCount = masterFolder.reused ? 0 : 1;

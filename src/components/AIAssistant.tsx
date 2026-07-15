@@ -85,8 +85,26 @@ export default function AIAssistant({ isOpen, onClose, activeContext, lang = 'vi
       const wsRaw = XLSX.utils.json_to_sheet(report.rawData || []);
       XLSX.utils.book_append_sheet(wb, wsRaw, "Detailed Data");
       
+      // Retrieve user's name to append to the filename
+      let userName = 'User';
+      try {
+        const userInfoStr = localStorage.getItem('BINATECH_USER_INFO');
+        if (userInfoStr) {
+          const parsed = JSON.parse(userInfoStr);
+          if (parsed.name) userName = parsed.name;
+        }
+      } catch (e) {}
+
+      // Format filename: {Discipline}_{YYYY-MM-DD}_{UserName}.xlsx
+      const cleanUserName = userName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const datePart = new Date().toISOString().slice(0, 10);
+      const discipline = activeContext || 'General';
+      const cleanDiscipline = discipline.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      
+      const finalFileName = `${cleanDiscipline}_${datePart}_${cleanUserName}.xlsx`;
+
       // Save
-      XLSX.writeFile(wb, report.fileName || "Binatech_AI_Report.xlsx");
+      XLSX.writeFile(wb, finalFileName);
     } catch (err) {
       console.error('Failed to generate Excel from AI report:', err);
       alert('Không thể tạo file Excel: ' + String(err));

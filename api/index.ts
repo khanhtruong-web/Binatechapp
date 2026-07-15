@@ -140,6 +140,7 @@ app.post("/api/settings/auto-setup", async (req, res) => {
 
     // 4. Setup sheets/tabs with headers
     const sheetHeaders: Record<string, string[]> = {
+      'Quotations': ['quoteId', 'quoteNumber', 'clientName', 'projectName', 'location', 'totalValue', 'status', 'folderLink', 'documentLink', 'createdAt'],
       'Marketing': ['leadId', 'clientName', 'contactPerson', 'email', 'phone', 'status', 'value', 'assignedTo', 'notes', 'lastContactDate'],
       'Accounting': ['invoiceId', 'clientName', 'project', 'amount', 'status', 'dueDate', 'paymentDate', 'billingAddress', 'taxId', 'notes'],
       'HR (Personnel)': ['employeeId', 'fullName', 'role', 'department', 'status', 'certifications', 'certExpiry', 'email', 'phone', 'hireDate', 'emergencyContact'],
@@ -163,12 +164,12 @@ app.post("/api/settings/auto-setup", async (req, res) => {
         updateSheetProperties: {
           properties: {
             sheetId: 0,
-            title: 'Marketing'
+            title: 'Quotations'
           },
           fields: 'title'
         }
       });
-      existingSheets.push('Marketing');
+      existingSheets.push('Quotations');
     }
 
     const requiredTabs = Object.keys(sheetHeaders);
@@ -245,12 +246,40 @@ app.post("/api/settings/auto-setup", async (req, res) => {
 // Quotation
 app.post("/api/quotation/generate", upload.single('template'), async (req, res) => {
   try {
+    const data = JSON.parse(req.body.data || '{}');
+    const { clientName, projectName, quoteNumber, total } = data;
+
     const responseData = {
       status: "ok",
       message: "Quotation pipeline simulated.",
       folderLink: "https://drive.google.com/drive/u/0/folders/simulated_folder",
       documentLink: "https://docs.google.com/document/d/simulated_doc/edit"
     };
+
+    const quoteId = `QT_${Date.now()}`;
+    const createdAt = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    
+    const newQuoteRow = {
+      quoteId,
+      quoteNumber: quoteNumber || '',
+      clientName: clientName || '',
+      projectName: projectName || '',
+      location: data.location || '',
+      totalValue: String(total || 0),
+      status: 'Draft',
+      folderLink: responseData.folderLink,
+      documentLink: responseData.documentLink,
+      createdAt
+    };
+
+    try {
+      const token = getAccessToken(req);
+      await addRow("Quotations", newQuoteRow, token);
+      console.log(`[Quotation Engine Vercel] Logged quotation ${quoteNumber} to Google Sheets.`);
+    } catch (err: any) {
+      console.warn(`[Quotation Engine Vercel] Failed to sync costing to Google Sheets:`, err.message);
+    }
+
     res.json(responseData);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

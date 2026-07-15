@@ -137,6 +137,7 @@ async function startServer() {
 
       // 4. Setup sheets/tabs with headers
       const sheetHeaders: Record<string, string[]> = {
+        'Quotations': ['quoteId', 'quoteNumber', 'clientName', 'projectName', 'location', 'totalValue', 'status', 'folderLink', 'documentLink', 'createdAt'],
         'Marketing': ['leadId', 'clientName', 'contactPerson', 'email', 'phone', 'status', 'value', 'assignedTo', 'notes', 'lastContactDate'],
         'Accounting': ['invoiceId', 'clientName', 'project', 'amount', 'status', 'dueDate', 'paymentDate', 'billingAddress', 'taxId', 'notes'],
         'HR (Personnel)': ['employeeId', 'fullName', 'role', 'department', 'status', 'certifications', 'certExpiry', 'email', 'phone', 'hireDate', 'emergencyContact'],
@@ -160,12 +161,12 @@ async function startServer() {
           updateSheetProperties: {
             properties: {
               sheetId: 0,
-              title: 'Marketing'
+              title: 'Quotations'
             },
             fields: 'title'
           }
         });
-        existingSheets.push('Marketing');
+        existingSheets.push('Quotations');
       }
 
       const requiredTabs = Object.keys(sheetHeaders);
@@ -284,19 +285,29 @@ async function startServer() {
       }
       
       // Step C: Update Master Database Log
-      await addRow("Master_Quotation_Database", {
-        quoteNo: quoteNumber,
-        client: clientName,
-        project: projectName,
-        totalValue: total,
-        date: new Date().toLocaleDateString(),
-        status: "Draft",
-        folderLink: newFolder.webViewLink
-      });
+      const quoteId = `QT_${Date.now()}`;
+      const createdAt = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+      
+      const newQuoteRow = {
+        quoteId,
+        quoteNumber,
+        clientName,
+        projectName,
+        location: data.location || '',
+        totalValue: String(total),
+        status: 'Draft',
+        folderLink: responseData.folderLink,
+        documentLink: responseData.documentLink,
+        createdAt
+      };
 
-      responseData.folderLink = newFolder.webViewLink;
-      responseData.documentLink = docLink;
-      */
+      try {
+        const token = getAccessToken(req);
+        await addRow("Quotations", newQuoteRow, token);
+        console.log(`[Quotation Engine] Logged quotation ${quoteNumber} to Google Sheets.`);
+      } catch (err: any) {
+        console.warn(`[Quotation Engine] Failed to sync costing to Google Sheets:`, err.message);
+      }
 
       res.json(responseData);
     } catch (error: any) {

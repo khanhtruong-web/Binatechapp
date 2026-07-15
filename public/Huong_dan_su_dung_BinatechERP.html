@@ -342,35 +342,30 @@
         <p>Binatech NDT ERP là phần mềm quản trị doanh nghiệp tích hợp cao cấp được thiết kế riêng biệt cho các doanh nghiệp hoạt động trong lĩnh vực Kiểm Tra Không Phá Hủy (NDT). Tài liệu này cung cấp hướng dẫn vận hành chi tiết, thiết lập kỹ thuật kết nối Google Workspace và cách khai thác Trợ lý AI thông minh.</p>
 
         <div class="alert alert-info">
-            <strong>Phiên bản v2.1 • Cập nhật ngày 15/07/2026.</strong> Tích hợp giao diện sáng/tối (Dark Mode), bộ ghim Sidebar thông minh, bảng theo dõi lỗi chẩn đoán tự động và xuất báo cáo Pivot Excel từ Chatbox AI.
+            <strong>Phiên bản v2.2 • Cập nhật ngày 15/07/2026.</strong> Tích hợp phân quyền theo danh sách Email (Admin/Manager/Employee), đồng bộ hóa tự động 12 thư mục Google Drive nghiệp vụ, tích hợp lưu trữ báo giá vào tab Quotations mới trên Google Sheets (nâng tổng số lên 14 tabs dữ liệu), thiết lập định dạng tên file Excel thông minh, và bổ sung chức năng đồng bộ lỗi đám mây cho Admin.
         </div>
 
-        <h2 id="installation">Cấu Hình Kết Nối Ban Đầu (Settings)</h2>
-        <p>Để ứng dụng đồng bộ dữ liệu thời gian thực lên Google Sheets và Google Drive của công ty, người quản trị (Admin) cần thiết lập cấu hình kết nối tại tab <strong>Settings</strong>.</p>
+        <h2 id="installation">Quy Trình Cấu Hằng Ban Đầu (Settings)</h2>
+        <p>Để ứng dụng đồng bộ dữ liệu thời gian thực lên Google Sheets, Google Drive của doanh nghiệp và phân quyền người dùng chính xác, người quản lý cần thực hiện 4 bước sau:</p>
         
-        <div class="card-grid">
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-icon">🔑</span>
-                    1. Google Sheets Database ID
-                </div>
-                <p>Mã định danh của bảng tính Google Sheet được dùng làm cơ sở dữ liệu cho 9 phân hệ. Copy chuỗi ký tự nằm giữa <code>/d/</code> và <code>/edit</code> trên đường dẫn URL của Sheet và dán vào ô nhập liệu.</p>
-            </div>
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-icon">📂</span>
-                    2. Service Account JSON
-                </div>
-                <p>Nội dung file khóa bảo mật <code>.json</code> tải về từ Google Cloud Console. Cấp cho ứng dụng quyền thay mặt quản trị viên đọc/ghi dữ liệu. Bạn phải <strong>Share quyền Editor</strong> của file Google Sheet cho email Service Account này.</p>
-            </div>
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-icon">🤖</span>
-                    3. Gemini API Key
-                </div>
-                <p>Khóa API lấy miễn phí từ Google AI Studio (ai.google.dev) để kích hoạt toàn bộ tính năng phân tích dữ liệu, tự học, chẩn đoán lỗi và sinh file Excel từ Chatbox AI.</p>
-            </div>
-        </div>
+        <ul class="steps">
+            <li class="step-item">
+                <span class="step-number">1</span>
+                <strong>Cấu hình Google & Gemini API:</strong> Nhập <code>VITE_GOOGLE_CLIENT_ID</code> để liên kết đăng nhập Google Workspace của công ty. Nhập <code>GEMINI_API_KEY</code> lấy từ Google AI Studio để kích hoạt Trợ lý AI và tự chẩn đoán lỗi.
+            </li>
+            <li class="step-item">
+                <span class="step-number">2</span>
+                <strong>Liên kết Database Google Sheets & Service Account:</strong> Dán <code>GOOGLE_SHEETS_DATABASE_ID</code> và khóa bảo mật <code>GOOGLE_SERVICE_ACCOUNT_JSON</code>. Bắt buộc phải <strong>Share quyền Editor</strong> của file Google Sheets database cho địa chỉ email của Google Service Account này.
+            </li>
+            <li class="step-item">
+                <span class="step-number">3</span>
+                <strong>Quản lý Phân Quyền Người Dùng theo Email:</strong> Nhập danh sách địa chỉ email được quyền <code>Admin</code> và <code>Manager</code> (ngăn cách bằng dấu phẩy). Những tài khoản đăng nhập khác nằm ngoài danh sách sẽ tự động nhận quyền <code>Employee</code> (chỉ xem, không sửa/xóa thiết bị hay xem kế toán/cài đặt).
+            </li>
+            <li class="step-item">
+                <span class="step-number">4</span>
+                <strong>Khởi tạo Đồng Bộ 12 Thư Mục và 14 Tabs:</strong> Bấm <strong>Lưu Cài Đặt</strong>, sau đó click nút <strong>Sync Drive</strong> trên Status Bar. Hệ thống sẽ tự động khởi tạo cơ cấu 12 thư mục con trên Google Drive công ty (e.g. Quotations, Marketing, HR Documents...) và tạo đủ 14 tabs cột dữ liệu chuẩn trên file Google Sheets.
+            </li>
+        </ul>
 
         <h2 id="tab-dashboard">1. Tổng Quan Dashboard & Thanh Trạng Thái (Status Bar)</h2>
         <p>Trang Dashboard hiển thị nhanh các thống kê quan trọng của doanh nghiệp: Doanh số dự án, tỷ lệ phát hiện lỗi RT/UT, số lượng thiết bị cần hiệu chuẩn và chứng chỉ nhân sự sắp hết hạn.</p>

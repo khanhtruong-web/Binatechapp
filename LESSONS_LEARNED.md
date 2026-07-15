@@ -134,6 +134,21 @@
 - **Nguyên nhân gốc:** Trạng thái `isAuthenticated` chỉ được lưu trong state của React, bị giải phóng hoàn toàn khi tải lại trang.
 - **Khắc phục:** Persist thông tin người dùng (`BINATECH_USER_INFO`) vào `localStorage` khi đăng nhập thành công. Khởi tạo giá trị ban đầu cho state `isAuthenticated` và `userInfo` từ `localStorage` để tự động giữ trạng thái đăng nhập khi reload. Xóa khóa này khi bấm nút "Sign Out".
 
+### LL-23. Phân quyền tập trung theo danh sách Email người dùng (Admin-based Role Enforcement)
+- **Triệu chứng:** Mọi người dùng mới đều có toàn quyền Admin và ai cũng có thể tự thay đổi vai trò (role) từ dropdown selector để xem dữ liệu kế toán/cài đặt trái phép.
+- **Nguyên nhân gốc:** Trạng thái role được lưu trữ lỏng lẻo ở client và dropdown đổi quyền hiển thị cho tất cả mọi người mà không xác thực danh tính email.
+- **Khắc phục:** Thiết lập cơ chế tự động xác định vai trò dựa trên email khi đăng nhập. Admin cấu hình danh sách Admin/Manager qua Settings (lưu localStorage). Chỉ email Admin mới thấy dropdown đổi vai trò để preview/test, các email khác bị khóa cứng vào vai trò mặc định (Employee) hoặc vai trò được cấu hình.
+
+### LL-24. Đồng bộ 12 thư mục Drive nghiệp vụ và 14 bảng tính Google Sheets
+- **Triệu chứng:** Khi đồng bộ, các tab như Báo giá (Quotation Engine) không có thư mục trên Drive hay tab trên Sheets để lưu trữ, làm mất tính đồng bộ dữ liệu.
+- **Nguyên nhân gốc:** Cấu hình khởi tạo thư mục và tab Sheets bị thiếu phân hệ Báo giá và các thư mục nghiệp vụ khác.
+- **Khắc phục:** Bổ sung bảng `Quotations` vào danh sách `sheetHeaders` tự động tạo khi Auto-setup. Thêm logic ghi nhận báo giá thật bằng `addRow("Quotations", ...)` trực tiếp trong API `/api/quotation/generate` của server/api. Cập nhật tiến trình đồng bộ Drive tự động tạo đủ 12 thư mục con nghiệp vụ.
+
+### LL-25. Định dạng tên file Excel thông minh và Đồng bộ lỗi đám mây cho Admin
+- **Triệu chứng:** Tên file Excel tải về từ AI Assistant do AI tự sinh ngẫu nhiên làm giảm tính chuyên nghiệp; Lỗi đồng bộ chỉ lưu cục bộ ở máy của từng user khiến Admin không chẩn đoán được lỗi của người dùng khác.
+- **Nguyên nhân gốc:** Tên file Excel được AI quyết định tự do; Bảng lỗi trong Settings chỉ đọc từ localStorage của máy đang truy cập.
+- **Khắc phục:** Override tên file Excel tại frontend theo format chuẩn `{Discipline}_{YYYY-MM-DD}_{UserName}.xlsx`. Bổ sung nút "Tải Lỗi từ Cloud" để Admin tải toàn bộ lỗi ghi nhận trong tab `App_Errors` trên Google Sheets về hiển thị tập trung trên UI Settings của Admin.
+
 ---
 
-_Cập nhật lần cuối: Phase 4 hoàn thành tái thiết kế Đăng nhập động cao cấp, Welcome Chatbot khách, cơ chế chống tạo trùng lặp folder Drive, liên kết Google Sheets tùy chỉnh và cơ chế tự động giữ trạng thái đăng nhập khi Refresh. Kiểm thử biên dịch thành công 100%._
+_Cập nhật lần cuối: Phase 5 hoàn thành cơ chế phân quyền nâng cấp theo danh sách Email Admin/Manager, đồng bộ hóa tự động toàn diện 12 thư mục con Drive và 14 tabs Google Sheets (bao gồm phân hệ Quotations thực tế), định dạng tên file Excel thông minh, và tính năng đồng bộ lỗi tập trung từ Cloud._

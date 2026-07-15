@@ -19,12 +19,17 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
   const [userRole, setUserRole] = useState('Admin');
   const [isSaved, setIsSaved] = useState(false);
   const [isSettingUp, setIsSettingUp] = useState(false);
+  
+  // Custom user permissions lists
+  const [adminEmails, setAdminEmails] = useState('khanhdcn@gmail.com');
+  const [managerEmails, setManagerEmails] = useState('');
 
   // Error logging state
   const [errorLogs, setErrorLogs] = useState<AppError[]>([]);
   const [expandedErrorId, setExpandedErrorId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [isSyncingErrors, setIsSyncingErrors] = useState(false);
 
   useEffect(() => {
     setGoogleClientId(localStorage.getItem('VITE_GOOGLE_CLIENT_ID') || import.meta.env.VITE_GOOGLE_CLIENT_ID || '');
@@ -32,6 +37,8 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
     setGoogleSheetsId(localStorage.getItem('GOOGLE_SHEETS_DATABASE_ID') || '');
     setServiceAccountJson(localStorage.getItem('GOOGLE_SERVICE_ACCOUNT_JSON') || '');
     setUserRole(localStorage.getItem('BINATECH_USER_ROLE') || 'Admin');
+    setAdminEmails(localStorage.getItem('BINATECH_ADMIN_EMAILS') || 'khanhdcn@gmail.com');
+    setManagerEmails(localStorage.getItem('BINATECH_MANAGER_EMAILS') || '');
 
     const loadLogs = () => {
       const logs = localStorage.getItem('binatech_error_logs');
@@ -58,6 +65,8 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
     localStorage.setItem('GOOGLE_SHEETS_DATABASE_ID', googleSheetsId);
     localStorage.setItem('GOOGLE_SERVICE_ACCOUNT_JSON', serviceAccountJson);
     localStorage.setItem('BINATECH_USER_ROLE', userRole);
+    localStorage.setItem('BINATECH_ADMIN_EMAILS', adminEmails);
+    localStorage.setItem('BINATECH_MANAGER_EMAILS', managerEmails);
     
     // Sync settings with the backend server
     fetch('/api/settings/save', {
@@ -176,6 +185,56 @@ ${errorDetails}
     setTimeout(() => setCopiedAll(false), 1500);
   };
 
+  const handleSyncCloudErrors = async () => {
+    setIsSyncingErrors(true);
+    try {
+      const token = localStorage.getItem('BINATECH_GOOGLE_TOKEN');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/sheets/App_Errors', {
+        headers
+      });
+
+      if (!res.ok) {
+        throw new Error(lang === 'vi' ? 'Không thể tải nhật ký từ Google Sheets. Hãy kiểm tra cấu hình.' : 'Failed to retrieve error logs from Google Sheets. Check settings.');
+      }
+
+      const rows = await res.json();
+      if (Array.isArray(rows)) {
+        const cloudErrors: AppError[] = rows.map((r: any) => ({
+          errorId: r.errorId || '',
+          timestamp: r.timestamp || '',
+          userEmail: r.userEmail || '',
+          errorMessage: r.errorMessage || '',
+          errorStack: r.errorStack || '',
+          diagnosticPrompt: r.diagnosticPrompt || '',
+          status: r.status || 'Open'
+        }))
+        .filter((r: any) => r.errorId);
+
+        // Sort descending by errorId
+        cloudErrors.sort((a, b) => b.errorId.localeCompare(a.errorId));
+
+        localStorage.setItem('binatech_error_logs', JSON.stringify(cloudErrors));
+        setErrorLogs(cloudErrors);
+        
+        alert(lang === 'vi' 
+          ? `Đã tải về thành công ${cloudErrors.length} bản ghi lỗi từ đám mây (Google Sheets)!` 
+          : `Successfully pulled ${cloudErrors.length} error records from Google Sheets Cloud!`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert((lang === 'vi' ? 'Lỗi khi đồng bộ đám mây: ' : 'Cloud sync error: ') + err.message);
+    } finally {
+      setIsSyncingErrors(false);
+    }
+  };
+
   const handleClearLogs = () => {
     if (confirm(lang === 'vi' ? 'Bạn có chắc chắn muốn xóa toàn bộ nhật ký lỗi?' : 'Are you sure you want to clear all error logs?')) {
       localStorage.removeItem('binatech_error_logs');
@@ -252,6 +311,45 @@ ${errorDetails}
                 <option value="Manager">{lang === 'vi' ? 'Manager (Quản lý - Không xem Kế toán & Cấu hình)' : 'Manager (No Accounting/Settings)'}</option>
                 <option value="Employee">{lang === 'vi' ? 'Employee (Nhân viên - Chỉ làm vận hành)' : 'Employee (Operations Only)'}</option>
               </select>
+            </div>
+
+            {/* Custom User Permissions Configuration (Admin / Manager emails) */}
+            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                {lang === 'vi' ? 'Quản lý Phân Quyền Người Dùng theo Email' : 'User Permissions by Email'}
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {lang === 'vi' 
+                  ? 'Định cấu hình các địa chỉ email được tự động gán quyền Admin hoặc Manager khi đăng nhập (ngăn cách bằng dấu phẩy).'
+                  : 'Configure email addresses that will automatically be assigned Admin or Manager roles upon login (comma-separated).'}
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 mb-1">
+                    {lang === 'vi' ? 'Danh sách Email Admin' : 'Admin Email List'}
+                  </label>
+                  <input 
+                    type="text"
+                    value={adminEmails}
+                    onChange={(e) => setAdminEmails(e.target.value)}
+                    placeholder="khanhdcn@gmail.com, admin@example.com"
+                    className="w-full bg-white border border-slate-300 text-slate-850 text-slate-800 rounded-md py-2 px-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 mb-1">
+                    {lang === 'vi' ? 'Danh sách Email Manager' : 'Manager Email List'}
+                  </label>
+                  <input 
+                    type="text"
+                    value={managerEmails}
+                    onChange={(e) => setManagerEmails(e.target.value)}
+                    placeholder="manager1@example.com, manager2@example.com"
+                    className="w-full bg-white border border-slate-300 text-slate-850 text-slate-800 rounded-md py-2 px-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -373,6 +471,19 @@ ${errorDetails}
               </h3>
             </div>
             <div className="flex items-center space-x-2">
+              <button 
+                onClick={handleSyncCloudErrors}
+                disabled={isSyncingErrors}
+                className="flex items-center space-x-1.5 text-xs bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg border border-slate-800 transition-all font-medium cursor-pointer shadow-sm active:scale-95"
+              >
+                {isSyncingErrors ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Database className="w-3.5 h-3.5 text-blue-400" />
+                )}
+                <span>{lang === 'vi' ? 'Tải Lỗi từ Cloud' : 'Sync Cloud Errors'}</span>
+              </button>
+
               {errorLogs.length > 0 && (
                 <>
                   <button 
@@ -380,7 +491,7 @@ ${errorDetails}
                     className={`flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all font-medium cursor-pointer shadow-sm ${
                       copiedAll
                         ? 'bg-emerald-600 border-emerald-500 text-white'
-                        : 'bg-white border-slate-300 text-slate-750 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700'
+                        : 'bg-white border-slate-300 text-slate-750 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-205 dark:hover:bg-slate-700'
                     }`}
                   >
                     {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -417,7 +528,8 @@ ${errorDetails}
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 dark:bg-slate-800/30 dark:border-slate-800 text-slate-600 dark:text-slate-350 font-semibold text-xs">
                           <th className="p-3 w-32">{lang === 'vi' ? 'Thời gian' : 'Timestamp'}</th>
-                          <th className="p-3 w-40">{lang === 'vi' ? 'Phân hệ' : 'Module'}</th>
+                          <th className="p-3 w-40">{lang === 'vi' ? 'Tài khoản' : 'Account'}</th>
+                          <th className="p-3 w-36">{lang === 'vi' ? 'Mã lỗi' : 'Error ID'}</th>
                           <th className="p-3">{lang === 'vi' ? 'Thông điệp lỗi' : 'Error Message'}</th>
                           <th className="p-3 w-32 text-center">{lang === 'vi' ? 'Chẩn đoán' : 'Diagnostics'}</th>
                         </tr>
@@ -429,7 +541,8 @@ ${errorDetails}
                             <React.Fragment key={log.errorId}>
                               <tr className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors ${isExpanded ? 'bg-amber-50/10' : ''}`}>
                                 <td className="p-3 text-xs font-mono text-slate-500 dark:text-slate-400">{log.timestamp.split(', ')[1] || log.timestamp}</td>
-                                <td className="p-3 text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">{log.userEmail.split('@')[0]} • {log.errorId.substring(4)}</td>
+                                <td className="p-3 text-xs font-semibold text-slate-650 dark:text-slate-300 truncate" title={log.userEmail}>{log.userEmail}</td>
+                                <td className="p-3 text-xs font-mono text-blue-600 dark:text-blue-400">{log.errorId}</td>
                                 <td className="p-3 text-xs font-mono max-w-sm truncate text-rose-600 dark:text-rose-400" title={log.errorMessage}>
                                   {log.errorMessage}
                                 </td>
@@ -444,7 +557,7 @@ ${errorDetails}
                               </tr>
                               {isExpanded && (
                                 <tr className="bg-slate-50/80 dark:bg-slate-800/10">
-                                  <td colSpan={4} className="p-4 border-t border-slate-200 dark:border-slate-800 animate-fade-in">
+                                  <td colSpan={5} className="p-4 border-t border-slate-200 dark:border-slate-800 animate-fade-in">
                                     <div className="space-y-3.5">
                                       {/* Stack Trace */}
                                       <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-300 max-h-40 overflow-y-auto leading-relaxed">

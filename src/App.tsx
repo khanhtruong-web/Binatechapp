@@ -20,6 +20,36 @@ import { MODULE_SCHEMAS } from './lib/schemas';
 import { Lang, t, localizeSchema } from './lib/translations';
 import { getCachedToken } from './lib/authCache';
 
+function determineRoleFromEmail(email?: string): 'Admin' | 'Manager' | 'Employee' {
+  if (!email) return 'Employee';
+  
+  const cleanEmail = email.toLowerCase().trim();
+  
+  // 1. Check custom admin list
+  const customAdminsStr = localStorage.getItem('BINATECH_ADMIN_EMAILS') || 'khanhdcn@gmail.com';
+  const adminList = customAdminsStr.split(',').map(e => e.toLowerCase().trim());
+  if (adminList.includes(cleanEmail) || cleanEmail === 'admin@binatech-ndt.com') {
+    return 'Admin';
+  }
+  
+  // 2. Check custom manager list
+  const customManagersStr = localStorage.getItem('BINATECH_MANAGER_EMAILS') || '';
+  const managerList = customManagersStr.split(',').map(e => e.toLowerCase().trim());
+  if (managerList.includes(cleanEmail)) {
+    return 'Manager';
+  }
+  
+  return 'Employee';
+}
+
+function isAdminEmail(email?: string): boolean {
+  if (!email) return false;
+  const cleanEmail = email.toLowerCase().trim();
+  const customAdminsStr = localStorage.getItem('BINATECH_ADMIN_EMAILS') || 'khanhdcn@gmail.com';
+  const adminList = customAdminsStr.split(',').map(e => e.toLowerCase().trim());
+  return adminList.includes(cleanEmail) || cleanEmail === 'admin@binatech-ndt.com';
+}
+
 export default function App() {
   const [userInfo, setUserInfo] = useState<any>(() => {
     const saved = localStorage.getItem('BINATECH_USER_INFO');
@@ -33,9 +63,20 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('BINATECH_USER_INFO') !== null;
   });
-  const [userRole, setUserRole] = useState<'Admin' | 'Manager' | 'Employee'>(
-    (localStorage.getItem('BINATECH_USER_ROLE') as any) || 'Admin'
-  );
+  const [userRole, setUserRole] = useState<'Admin' | 'Manager' | 'Employee'>(() => {
+    const savedUserInfo = localStorage.getItem('BINATECH_USER_INFO');
+    if (savedUserInfo) {
+      try {
+        const parsed = JSON.parse(savedUserInfo);
+        if (isAdminEmail(parsed.email)) {
+          return (localStorage.getItem('BINATECH_USER_ROLE') as any) || 'Admin';
+        } else {
+          return determineRoleFromEmail(parsed.email);
+        }
+      } catch (e) {}
+    }
+    return 'Employee';
+  });
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('BINATECH_LANG') as Lang) || 'vi');
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('BINATECH_DARK') === '1');
@@ -111,9 +152,12 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Login onLogin={(info) => {
-      const fullInfo = { ...info, role: userRole };
+      const initialRole = determineRoleFromEmail(info?.email);
+      const fullInfo = { ...info, role: initialRole };
       setUserInfo(fullInfo);
       localStorage.setItem('BINATECH_USER_INFO', JSON.stringify(fullInfo));
+      setUserRole(initialRole);
+      localStorage.setItem('BINATECH_USER_ROLE', initialRole);
       setIsAuthenticated(true);
     }} lang={lang} toggleLang={toggleLang} />;
   }
@@ -247,31 +291,41 @@ export default function App() {
               isOpen ? 'opacity-100 w-auto pointer-events-auto block' : 'opacity-0 w-0 pointer-events-none hidden'
             }`}>
               <p className="text-xs font-semibold text-slate-200 truncate">{userInfo?.name || 'User'}</p>
-              <select
-                value={userRole}
-                onChange={(e) => {
-                  const nextRole = e.target.value as 'Admin' | 'Manager' | 'Employee';
-                  setUserRole(nextRole);
-                  localStorage.setItem('BINATECH_USER_ROLE', nextRole);
-                  
-                  // Reset active tab if new role is unauthorized for it
-                  const newTabs = allTabs.filter(tab => tab.roles.includes(nextRole));
-                  const isCurrentTabAllowed = newTabs.some(t => t.name === activeTab) || (nextRole === 'Admin' && activeTab === 'Settings');
-                  if (!isCurrentTabAllowed) {
-                    setActiveTab('Dashboard');
-                  }
-                }}
-                className={`block text-[10px] font-bold px-1.5 py-0.5 rounded-lg mt-0.5 outline-none border cursor-pointer bg-slate-950 transition-all ${
-                  userRole === 'Admin' ? 'border-blue-500/40 text-blue-400' :
-                  userRole === 'Manager' ? 'border-indigo-500/40 text-indigo-400' :
-                  'border-slate-700 text-slate-400'
-                }`}
-                title={lang === 'vi' ? 'Đổi quyền nhanh' : 'Quick role switch'}
-              >
-                <option value="Admin">Admin</option>
-                <option value="Manager">Manager</option>
-                <option value="Employee">Employee</option>
-              </select>
+              {isAdminEmail(userInfo?.email) ? (
+                <select
+                  value={userRole}
+                  onChange={(e) => {
+                    const nextRole = e.target.value as 'Admin' | 'Manager' | 'Employee';
+                    setUserRole(nextRole);
+                    localStorage.setItem('BINATECH_USER_ROLE', nextRole);
+                    
+                    // Reset active tab if new role is unauthorized for it
+                    const newTabs = allTabs.filter(tab => tab.roles.includes(nextRole));
+                    const isCurrentTabAllowed = newTabs.some(t => t.name === activeTab) || (nextRole === 'Admin' && activeTab === 'Settings');
+                    if (!isCurrentTabAllowed) {
+                      setActiveTab('Dashboard');
+                    }
+                  }}
+                  className={`block text-[10px] font-bold px-1.5 py-0.5 rounded-lg mt-0.5 outline-none border cursor-pointer bg-slate-950 transition-all ${
+                    userRole === 'Admin' ? 'border-blue-500/40 text-blue-400' :
+                    userRole === 'Manager' ? 'border-indigo-500/40 text-indigo-400' :
+                    'border-slate-700 text-slate-400'
+                  }`}
+                  title={lang === 'vi' ? 'Đổi quyền nhanh' : 'Quick role switch'}
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Employee">Employee</option>
+                </select>
+              ) : (
+                <span className={`inline-block text-[9px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full mt-1 border select-none ${
+                  userRole === 'Manager' 
+                    ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-400' 
+                    : 'bg-slate-950/40 border-slate-700 text-slate-400'
+                }`}>
+                  {userRole}
+                </span>
+              )}
             </div>
           </div>
 
