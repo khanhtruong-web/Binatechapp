@@ -112,7 +112,28 @@
 - **Nguyên nhân gốc:** Sidebar thông thường tham gia vào dòng chảy tài liệu (document flow). Sự thay đổi kích thước của Sidebar làm thay đổi trực tiếp vùng chứa nội dung của phần còn lại.
 - **Khắc phục:** Thiết lập Sidebar là vị trí tuyệt đối (`absolute`) có độ ưu tiên cao (`z-30`) và chuyển đổi chiều rộng mượt mà. Đồng thời, thêm một thanh đệm ẩn cố định có kích thước bằng Sidebar khi thu gọn (`w-20`) ở dòng chảy tài liệu chính. Khi hover qua, Sidebar sẽ mở rộng đè (overlay) lên trên phần nội dung bên phải chứ không đẩy nó sang bên, từ đó triệt tiêu hoàn toàn hiện tượng layout shift cho các component biểu đồ và bảng dữ liệu.
 
+### LL-19. Lỗi EROFS (Read-only File System) trên Vercel Serverless Functions
+- **Triệu chứng:** Deploy Vercel thành công nhưng khi gọi các API đọc/ghi bảng tính thì serverless function crash ngay lập tức và trả về lỗi 500.
+- **Nguyên nhân gốc:** Vercel triển khai mã nguồn trên một hệ thống file chỉ đọc (read-only). Bất kỳ nỗ lực ghi đĩa nào vào thư mục ứng dụng (ví dụ: tạo tệp `local_db.json` trong `process.cwd()`) đều quăng ra lỗi `EROFS`. Do `localDb.ts` khởi tạo ghi đĩa ngay khi module được import (ở phạm vi toàn cục của tệp), serverless function bị crash từ giai đoạn khởi tạo lạnh (cold start).
+- **Khắc phục:** 
+  1. Tự động kiểm tra môi trường Vercel (`process.env.VERCEL`) để đổi đường dẫn database về thư mục tạm ghi được `/tmp/local_db.json`.
+  2. Bọc toàn bộ các hàm ghi đĩa trong khối `try-catch` và triển khai cơ chế **Hybrid In-memory Database** để tự động lưu tạm vào RAM nếu việc ghi đĩa bị từ chối, giúp backend luôn chạy mượt mà không bao giờ bị sập.
+
+### LL-20. Lỗi không nhận diện cấu hình lưu tạm trên Vercel
+- **Triệu chứng:** Người dùng nhập Service Account hoặc Sheets ID mới trong mục Cài đặt nhưng backend vẫn báo lỗi kết nối hoặc bỏ qua các tham số này.
+- **Nguyên nhân gốc:** Do hệ thống file chỉ đọc, Vercel lưu cấu hình tạm vào `/tmp/server-config.json`. Tuy nhiên, các trình kết nối Sheets và Google Auth trước đây chỉ đọc từ `server-config.json` ở thư mục gốc.
+- **Khắc phục:** Cấu hình lại các trình điều khiển xác thực và kết nối Google Sheets (`googleAuth.ts`, `googleSheets.ts`) để ưu tiên tìm kiếm và tải cấu hình từ thư mục tạm `/tmp/server-config.json` trước khi tìm ở thư mục gốc.
+
+### LL-21. Tránh tạo trùng lặp (duplicate) thư mục Google Drive khi đồng bộ
+- **Triệu chứng:** Mỗi lần bấm nút đồng bộ ("Sync Drive"), hệ thống lại tạo ra các thư mục mới trùng tên trên Drive của người dùng (ví dụ: có nhiều thư mục `Marketing`, `NDT Reports` song tạm).
+- **Nguyên nhân gốc:** Trình tạo thư mục chỉ gọi thẳng lệnh `drive.files.create` mà không kiểm tra xem thư mục có tên đó đã tồn tại trong thư mục cha hay chưa.
+- **Khắc phục:** Viết thêm logic kiểm tra chống trùng lặp: Trước khi tạo thư mục mới, gọi `drive.files.list` tìm kiếm theo tên và ID thư mục cha. Nếu đã có, tái sử dụng ID của thư mục cũ thay vì tạo mới. Trả về thông số đếm chi tiết (`createdCount`, `reusedCount`) để thông báo cụ thể cho người dùng.
+
+### LL-22. Khắc phục lỗi reset trạng thái Đăng nhập khi Refresh trang
+- **Triệu chứng:** Người dùng refresh trang (`F5`) hoặc bấm đồng bộ thì bị đá văng ra màn hình đăng nhập, phải đăng nhập lại từ đầu.
+- **Nguyên nhân gốc:** Trạng thái `isAuthenticated` chỉ được lưu trong state của React, bị giải phóng hoàn toàn khi tải lại trang.
+- **Khắc phục:** Persist thông tin người dùng (`BINATECH_USER_INFO`) vào `localStorage` khi đăng nhập thành công. Khởi tạo giá trị ban đầu cho state `isAuthenticated` và `userInfo` từ `localStorage` để tự động giữ trạng thái đăng nhập khi reload. Xóa khóa này khi bấm nút "Sign Out".
+
 ---
 
-_Cập nhật lần cuối: Phase 3 hoàn thành nâng cấp Logo BinaTech Home Button, Sidebar co giãn khi Hover thông minh không gây vỡ bố cục, mở rộng các trường dữ liệu cho 9 phân hệ chuẩn ERP 1Office và Việt hóa / Anh hóa toàn bộ giá trị Dropdown. Build production cục bộ thành công 100%._
-
+_Cập nhật lần cuối: Phase 4 hoàn thành tái thiết kế Đăng nhập động cao cấp, Welcome Chatbot khách, cơ chế chống tạo trùng lặp folder Drive, liên kết Google Sheets tùy chỉnh và cơ chế tự động giữ trạng thái đăng nhập khi Refresh. Kiểm thử biên dịch thành công 100%._

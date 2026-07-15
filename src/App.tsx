@@ -21,8 +21,18 @@ import { Lang, t, localizeSchema } from './lib/translations';
 import { getCachedToken } from './lib/authCache';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<any>(() => {
+    const saved = localStorage.getItem('BINATECH_USER_INFO');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('BINATECH_USER_INFO') !== null;
+  });
   const [userRole, setUserRole] = useState<'Admin' | 'Manager' | 'Employee'>(
     (localStorage.getItem('BINATECH_USER_ROLE') as any) || 'Admin'
   );
@@ -101,7 +111,9 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Login onLogin={(info) => {
-      setUserInfo({ ...info, role: userRole });
+      const fullInfo = { ...info, role: userRole };
+      setUserInfo(fullInfo);
+      localStorage.setItem('BINATECH_USER_INFO', JSON.stringify(fullInfo));
       setIsAuthenticated(true);
     }} lang={lang} toggleLang={toggleLang} />;
   }
@@ -296,7 +308,11 @@ export default function App() {
           </a>
 
           <button 
-            onClick={() => setIsAuthenticated(false)}
+            onClick={() => {
+              localStorage.removeItem('BINATECH_USER_INFO');
+              setIsAuthenticated(false);
+              setUserInfo(null);
+            }}
             title={!isOpen ? t('Sign Out', lang) : undefined}
             className={`w-full flex items-center bg-slate-900 hover:bg-slate-850 text-rose-455 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium cursor-pointer ${
               isOpen ? 'px-4 justify-start' : 'px-0 justify-center'

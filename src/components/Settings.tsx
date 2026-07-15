@@ -110,7 +110,8 @@ export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: st
         body: JSON.stringify({
           serviceAccountJson,
           userEmail: userInfo?.email || '',
-          accessToken: token || undefined
+          accessToken: token || undefined,
+          googleSheetsId: googleSheetsId
         })
       });
 

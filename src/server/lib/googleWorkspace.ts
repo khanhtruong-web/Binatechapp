@@ -41,6 +41,33 @@ export async function listDriveFiles(accessToken?: string, folderId?: string) {
 export async function createDriveFolder(folderName: string, parentFolderId?: string, accessToken?: string) {
   try {
     const drive = await getDriveClient(accessToken);
+
+    // 1. Check if folder already exists in parent (or root) to prevent duplicate folders
+    let q = `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    if (parentFolderId) {
+      q += ` and '${parentFolderId}' in parents`;
+    } else {
+      q += ` and 'root' in parents`;
+    }
+
+    const existingList = await drive.files.list({
+      q,
+      fields: 'files(id, name, webViewLink)',
+      pageSize: 1
+    });
+
+    const existingFiles = existingList.data.files || [];
+    if (existingFiles.length > 0) {
+      console.log(`[Google Drive] Reusing existing folder '${folderName}' (ID: ${existingFiles[0].id})`);
+      return {
+        id: existingFiles[0].id,
+        name: existingFiles[0].name,
+        webViewLink: existingFiles[0].webViewLink,
+        reused: true
+      };
+    }
+
+    // 2. Otherwise, create a new folder
     const fileMetadata: any = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
@@ -66,7 +93,12 @@ export async function createDriveFolder(folderName: string, parentFolderId?: str
       }
     }
 
-    return folder.data;
+    return {
+      id: folder.data.id || '',
+      name: folder.data.name || '',
+      webViewLink: folder.data.webViewLink || '',
+      reused: false
+    };
   } catch (err: any) {
     console.error('Error creating folder:', err);
     throw new Error('Failed to create folder: ' + err.message);
@@ -75,13 +107,13 @@ export async function createDriveFolder(folderName: string, parentFolderId?: str
 
 export async function syncDriveFolders(accessToken?: string) {
   try {
-    // 1. Create main parent folder
+    // 1. Create/find main parent folder
     const masterFolder = await createDriveFolder('Binatech ERP Master', undefined, accessToken);
     const masterFolderId = masterFolder.id;
 
     if (!masterFolderId) throw new Error('Failed to create Master Folder ID');
 
-    // 2. Create subfolders
+    // 2. Create/find subfolders
     const subfolders = [
       'Marketing',
       'HR Documents',
@@ -90,15 +122,25 @@ export async function syncDriveFolders(accessToken?: string) {
       'Equipment Certificates'
     ];
 
+    let createdCount = masterFolder.reused ? 0 : 1;
+    let reusedCount = masterFolder.reused ? 1 : 0;
     const results = [];
+    
     for (const folderName of subfolders) {
       const folder = await createDriveFolder(folderName, masterFolderId, accessToken);
-      results.push({ name: folderName, id: folder.id, webViewLink: folder.webViewLink });
+      if (folder.reused) {
+        reusedCount++;
+      } else {
+        createdCount++;
+      }
+      results.push({ name: folderName, id: folder.id, webViewLink: folder.webViewLink, reused: folder.reused });
     }
 
     return {
-      master: { id: masterFolderId, name: 'Binatech ERP Master', webViewLink: masterFolder.webViewLink },
-      subfolders: results
+      master: { id: masterFolderId, name: 'Binatech ERP Master', webViewLink: masterFolder.webViewLink, reused: masterFolder.reused },
+      subfolders: results,
+      createdCount,
+      reusedCount
     };
   } catch (err: any) {
     console.error('Error syncing folders:', err);

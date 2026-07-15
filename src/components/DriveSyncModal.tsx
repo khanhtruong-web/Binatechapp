@@ -17,6 +17,7 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
   const [currentFolder, setCurrentFolder] = useState('');
   const [syncedFolders, setSyncedFolders] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
+  const [syncResultInfo, setSyncResultInfo] = useState<{ createdCount: number, reusedCount: number } | null>(null);
 
   useEffect(() => {
     startSync();
@@ -27,6 +28,7 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
     setProgress(10);
     setSyncedFolders([]);
     setErrorMessage('');
+    setSyncResultInfo(null);
     
     try {
       const headers: any = { 'Content-Type': 'application/json' };
@@ -59,6 +61,7 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
           currentIndex++;
         } else {
           clearInterval(interval);
+          setSyncResultInfo({ createdCount: data.createdCount || 0, reusedCount: data.reusedCount || 0 });
           setStatus('complete');
         }
       }, 400);
@@ -105,6 +108,19 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
               />
             </div>
           </div>
+
+          {status === 'complete' && syncResultInfo && (
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs flex gap-2.5 items-start animate-fade-in-up">
+              <CheckCircle className="w-4 h-4 flex-shrink-0 text-emerald-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-900">Đồng bộ hoàn tất thành công!</p>
+                <p className="text-[11px] text-emerald-700 mt-0.5 leading-relaxed">
+                  Đã tạo mới: <strong className="text-emerald-900">{syncResultInfo.createdCount}</strong> thư mục. <br/>
+                  Sử dụng lại (tránh trùng lặp): <strong className="text-emerald-900">{syncResultInfo.reusedCount}</strong> thư mục.
+                </p>
+              </div>
+            </div>
+          )}
 
           {status === 'error' && errorMessage && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex gap-2 items-start animate-fade-in-up">

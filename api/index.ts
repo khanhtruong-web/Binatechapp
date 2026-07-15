@@ -63,7 +63,7 @@ app.post("/api/settings/save", (req, res) => {
 // Automated Google Sheet Database & Folders Setup
 app.post("/api/settings/auto-setup", async (req, res) => {
   try {
-    const { serviceAccountJson, userEmail, accessToken } = req.body;
+    const { serviceAccountJson, userEmail, accessToken, googleSheetsId } = req.body;
     if (!serviceAccountJson) {
       return res.status(400).json({ error: "Service Account JSON is required." });
     }
@@ -72,7 +72,7 @@ app.post("/api/settings/auto-setup", async (req, res) => {
     const tempConfig = {
       googleClientId: '',
       geminiApiKey: '',
-      googleSheetsId: '',
+      googleSheetsId: googleSheetsId || '',
       serviceAccountJson
     };
     
@@ -106,18 +106,37 @@ app.post("/api/settings/auto-setup", async (req, res) => {
     const sheets = google.sheets({ version: 'v4', auth });
     const drive = google.drive({ version: 'v3', auth });
     
-    // 3. Create Google Sheet Spreadsheet
-    console.log("[Auto-setup Vercel] Creating Binatech_NDT_ERP_Database...");
-    const spreadsheet = await sheets.spreadsheets.create({
-      requestBody: {
-        properties: {
-          title: 'Binatech_NDT_ERP_Database',
+    // 3. Create or Reuse Google Sheet Spreadsheet
+    let spreadsheetId = googleSheetsId;
+    let existingSheets: string[] = [];
+    
+    if (spreadsheetId && spreadsheetId.trim() !== '') {
+      console.log(`[Auto-setup Vercel] Found existing spreadsheet ID ${spreadsheetId}. Verifying...`);
+      try {
+        const sheetsMeta = await sheets.spreadsheets.get({ spreadsheetId });
+        if (sheetsMeta.data.sheets) {
+          existingSheets = sheetsMeta.data.sheets.map((s: any) => s.properties?.title || '');
         }
-      },
-      fields: 'spreadsheetId'
-    });
-    const spreadsheetId = spreadsheet.data.spreadsheetId;
-    if (!spreadsheetId) throw new Error("Failed to create spreadsheet.");
+      } catch (e: any) {
+        console.warn(`Could not verify existing spreadsheet ${spreadsheetId}: ${e.message}. Creating a new one.`);
+        spreadsheetId = '';
+      }
+    }
+
+    if (!spreadsheetId) {
+      console.log("[Auto-setup Vercel] Creating Binatech_NDT_ERP_Database...");
+      const spreadsheet = await sheets.spreadsheets.create({
+        requestBody: {
+          properties: {
+            title: 'Binatech_NDT_ERP_Database',
+          }
+        },
+        fields: 'spreadsheetId'
+      });
+      const spreadsheetIdResult = spreadsheet.data.spreadsheetId;
+      if (!spreadsheetIdResult) throw new Error("Failed to create spreadsheet.");
+      spreadsheetId = spreadsheetIdResult;
+    }
 
     // 4. Setup sheets/tabs with headers
     const sheetHeaders: Record<string, string[]> = {
@@ -136,31 +155,41 @@ app.post("/api/settings/auto-setup", async (req, res) => {
       'Tender Dossier': ['tenderId', 'title', 'clientName', 'submissionDate', 'status', 'value', 'manager', 'documents', 'remarks']
     };
 
-    const requests: any[] = [{
-      updateSheetProperties: {
-        properties: {
-          sheetId: 0,
-          title: 'Marketing'
-        },
-        fields: 'title'
-      }
-    }];
+    const requests: any[] = [];
+    const isNew = existingSheets.length === 0;
 
-    const otherSheets = Object.keys(sheetHeaders).filter(name => name !== 'Marketing');
-    otherSheets.forEach(name => {
+    if (isNew) {
       requests.push({
-        addSheet: {
+        updateSheetProperties: {
           properties: {
-            title: name
-          }
+            sheetId: 0,
+            title: 'Marketing'
+          },
+          fields: 'title'
         }
       });
+      existingSheets.push('Marketing');
+    }
+
+    const requiredTabs = Object.keys(sheetHeaders);
+    requiredTabs.forEach(name => {
+      if (!existingSheets.includes(name)) {
+        requests.push({
+          addSheet: {
+            properties: {
+              title: name
+            }
+          }
+        });
+      }
     });
 
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: { requests }
-    });
+    if (requests.length > 0) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests }
+      });
+    }
 
     // Write column headers
     const batchData = Object.entries(sheetHeaders).map(([sheetName, headers]) => ({
