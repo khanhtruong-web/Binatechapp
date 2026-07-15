@@ -22,7 +22,13 @@ export async function getGoogleAuth(accessToken?: string) {
 
   let credentialsString = '';
   try {
-    if (fs.existsSync('server-config.json')) {
+    if (fs.existsSync('/tmp/server-config.json')) {
+      const config = JSON.parse(fs.readFileSync('/tmp/server-config.json', 'utf8'));
+      if (config.serviceAccountJson) {
+        credentialsString = config.serviceAccountJson;
+      }
+    }
+    if (!credentialsString && fs.existsSync('server-config.json')) {
       const config = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
       if (config.serviceAccountJson) {
         credentialsString = config.serviceAccountJson;

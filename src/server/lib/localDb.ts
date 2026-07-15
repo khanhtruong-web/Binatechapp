@@ -1,7 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
-const LOCAL_DB_PATH = path.join(process.cwd(), 'local_db.json');
+// Pick a writeable directory under Serverless environments (like Vercel)
+let LOCAL_DB_PATH = path.join(process.cwd(), 'local_db.json');
+try {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || !fs.existsSync(process.cwd())) {
+    LOCAL_DB_PATH = path.join('/tmp', 'local_db.json');
+  }
+} catch (e) {}
 
 // Precompiled default mock database matching the system workflows
 const DEFAULT_MOCK_DATA: Record<string, any[]> = {
@@ -46,59 +52,67 @@ const DEFAULT_MOCK_DATA: Record<string, any[]> = {
   ]
 };
 
-// Initialize file if not exists
-if (!fs.existsSync(LOCAL_DB_PATH)) {
-  fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(DEFAULT_MOCK_DATA, null, 2), 'utf8');
+// Hybrid In-memory Database to avoid EROFS crashes
+let memDb: Record<string, any[]> = JSON.parse(JSON.stringify(DEFAULT_MOCK_DATA));
+
+// Safe startup initialization
+try {
+  if (!fs.existsSync(LOCAL_DB_PATH)) {
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(DEFAULT_MOCK_DATA, null, 2), 'utf8');
+  } else {
+    const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+    memDb = JSON.parse(raw);
+  }
+} catch (error) {
+  console.warn(`[localDb warning] Writable database file not initialized. Using in-memory fallback: ${error}`);
 }
 
 export function getLocalRows(sheetName: string): any[] {
   try {
-    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
-    const db = JSON.parse(data);
-    return db[sheetName] || [];
+    if (fs.existsSync(LOCAL_DB_PATH)) {
+      const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+      memDb = JSON.parse(raw);
+    }
   } catch (error) {
-    console.error('Error reading local DB:', error);
-    return DEFAULT_MOCK_DATA[sheetName] || [];
+    // Fail silently, use memDb
   }
+  return memDb[sheetName] || [];
 }
 
 export function addLocalRow(sheetName: string, rowData: any) {
+  if (!memDb[sheetName]) memDb[sheetName] = [];
+  memDb[sheetName].push(rowData);
+  
   try {
-    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
-    const db = JSON.parse(data);
-    if (!db[sheetName]) db[sheetName] = [];
-    db[sheetName].push(rowData);
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(memDb, null, 2), 'utf8');
   } catch (error) {
-    console.error('Error writing to local DB:', error);
+    console.warn(`[localDb warning] Failed to write addLocalRow to disk: ${error}`);
   }
 }
 
 export function deleteLocalRow(sheetName: string, idColumn: string, idValue: string) {
+  if (!memDb[sheetName]) return;
+  memDb[sheetName] = memDb[sheetName].filter((row: any) => String(row[idColumn]) !== String(idValue));
+  
   try {
-    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
-    const db = JSON.parse(data);
-    if (!db[sheetName]) return;
-    db[sheetName] = db[sheetName].filter((row: any) => String(row[idColumn]) !== String(idValue));
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(memDb, null, 2), 'utf8');
   } catch (error) {
-    console.error('Error deleting from local DB:', error);
+    console.warn(`[localDb warning] Failed to write deleteLocalRow to disk: ${error}`);
   }
 }
 
 export function updateLocalRow(sheetName: string, idColumn: string, idValue: string, newData: any) {
+  if (!memDb[sheetName]) memDb[sheetName] = [];
+  memDb[sheetName] = memDb[sheetName].map((row: any) => {
+    if (String(row[idColumn]) === String(idValue)) {
+      return { ...row, ...newData };
+    }
+    return row;
+  });
+  
   try {
-    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
-    const db = JSON.parse(data);
-    if (!db[sheetName]) db[sheetName] = [];
-    db[sheetName] = db[sheetName].map((row: any) => {
-      if (String(row[idColumn]) === String(idValue)) {
-        return { ...row, ...newData };
-      }
-      return row;
-    });
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(memDb, null, 2), 'utf8');
   } catch (error) {
-    console.error('Error updating local DB:', error);
+    console.warn(`[localDb warning] Failed to write updateLocalRow to disk: ${error}`);
   }
 }

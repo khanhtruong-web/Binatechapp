@@ -8,7 +8,12 @@ function hasGoogleConfig(): boolean {
   let hasSA = false;
   let hasSheet = false;
   try {
-    if (fs.existsSync('server-config.json')) {
+    if (fs.existsSync('/tmp/server-config.json')) {
+      const config = JSON.parse(fs.readFileSync('/tmp/server-config.json', 'utf8'));
+      if (config.serviceAccountJson) hasSA = true;
+      if (config.googleSheetsId) hasSheet = true;
+    }
+    if ((!hasSA || !hasSheet) && fs.existsSync('server-config.json')) {
       const config = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
       if (config.serviceAccountJson) hasSA = true;
       if (config.googleSheetsId) hasSheet = true;
@@ -27,6 +32,10 @@ function hasGoogleConfig(): boolean {
 // Helper to resolve the spreadsheet ID from config file or environment
 async function getSpreadsheetId(): Promise<string> {
   try {
+    if (fs.existsSync('/tmp/server-config.json')) {
+      const config = JSON.parse(fs.readFileSync('/tmp/server-config.json', 'utf8'));
+      if (config.googleSheetsId) return config.googleSheetsId;
+    }
     if (fs.existsSync('server-config.json')) {
       const config = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
       if (config.googleSheetsId) return config.googleSheetsId;
@@ -227,7 +236,12 @@ export async function checkHealth(requiredSheets: string[] = []): Promise<Health
   };
 
   try {
-    if (fs.existsSync('server-config.json')) {
+    if (fs.existsSync('/tmp/server-config.json')) {
+      const config = JSON.parse(fs.readFileSync('/tmp/server-config.json', 'utf8'));
+      if (config.serviceAccountJson) result.hasServiceAccount = true;
+      if (config.googleSheetsId) result.hasSheetsId = true;
+    }
+    if ((!result.hasServiceAccount || !result.hasSheetsId) && fs.existsSync('server-config.json')) {
       const config = JSON.parse(fs.readFileSync('server-config.json', 'utf8'));
       if (config.serviceAccountJson) result.hasServiceAccount = true;
       if (config.googleSheetsId) result.hasSheetsId = true;
