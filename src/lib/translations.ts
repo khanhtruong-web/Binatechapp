@@ -17,6 +17,9 @@ export const TRANSLATIONS: Record<string, Record<Lang, string>> = {
   'Training': { en: 'Training Logs', vi: 'Nhật ký Đào tạo' },
   'Equipment': { en: 'Equipment Register', vi: 'Quản lý Thiết bị NDT' },
   'NDT Reports': { en: 'NDT Reports', vi: 'Báo cáo Kiểm tra NDT' },
+  'Weld Ledger': { en: 'Weld Ledger', vi: 'Sổ theo dõi Mối hàn' },
+  'Welders': { en: 'Welders Register', vi: 'Danh sách Thợ hàn' },
+  'Reports': { en: 'Reports Center', vi: 'Trung tâm Báo cáo' },
   'Tender Dossier': { en: 'Tender Dossiers', vi: 'Hồ sơ Thầu' },
   
   // General UI Buttons
@@ -221,16 +224,19 @@ export function t(key: string, lang: Lang): string {
 
 import { ModuleSchema } from './types';
 
-export function localizeSchema(schema: ModuleSchema, lang: Lang): ModuleSchema {
-  if (!schema) return schema;
-  const fields = schema.fields.map(f => {
-    // Translate the label based on field name
-    const translatedLabel = SCHEMA_FIELD_TRANSLATIONS[f.name]?.[lang] || f.label;
-    
-    // Translate standard options if present
-    let translatedOptions = f.options;
-    if (f.options && lang === 'vi') {
-      translatedOptions = f.options.map(opt => {
+/**
+ * Translate a select option for DISPLAY ONLY.
+ * The original English value is always what gets stored in Google Sheets,
+ * so data stays language-independent (filters & reports never drift).
+ */
+export function translateOption(opt: string, lang: Lang): string {
+  if (lang !== 'vi' || !opt) return opt;
+  return OPTION_TRANSLATIONS_VI[opt] || opt;
+}
+
+const OPTION_TRANSLATIONS_VI: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  const translate = (opt: string): string => {
         // Marketing Lead Status & Source / Lost Reason
         if (opt === 'Cold') return 'Lạnh (Cold)';
         if (opt === 'Warm') return 'Ấm (Warm)';
@@ -303,17 +309,33 @@ export function localizeSchema(schema: ModuleSchema, lang: Lang): ModuleSchema {
         if (opt === 'Company Sponsored') return 'Công ty tài trợ';
         if (opt === 'Self Sponsored') return 'Nhân viên tự túc';
 
-        return opt;
-      });
-    }
-    
-    return {
-      ...f,
-      label: translatedLabel,
-      options: translatedOptions
-    };
-  });
-  
+    return opt;
+  };
+  // Pre-translate every known option once
+  [
+    'Cold', 'Warm', 'Hot', 'Converted', 'Website', 'Referral', 'Exhibition', 'Direct Call', 'Email Campaign',
+    'Price Too High', 'Competitor Won', 'No Response', 'Project Cancelled',
+    'Pending', 'Paid', 'Partially Paid', 'Overdue', 'Revenue/Receipt', 'Expense/Payment', 'Internal Transfer',
+    'Bank Transfer', 'Cash', 'Credit Card',
+    'Planned', 'Ongoing', 'On Hold', 'Completed', 'Closed', 'Low', 'Medium', 'High', 'Urgent',
+    'Excellent', 'Good', 'Fair', 'Poor',
+    'Active', 'Expiring Soon', 'Out of Service', 'In Repair', 'Yes', 'No',
+    'Accept', 'Reject', 'Draft', 'For Review', 'Approved', 'Obsolete', 'Checked by Inspector', 'Approved by Level III',
+    'Public', 'Partner Shared', 'Strictly Internal',
+    'Pass', 'Fail', 'Attended', 'Company Sponsored', 'Self Sponsored'
+  ].forEach(opt => { map[opt] = translate(opt); });
+  return map;
+})();
+
+export function localizeSchema(schema: ModuleSchema, lang: Lang): ModuleSchema {
+  if (!schema) return schema;
+  // Labels are translated for display; option VALUES stay in English so stored
+  // data is language-independent (see translateOption for display mapping).
+  const fields = schema.fields.map(f => ({
+    ...f,
+    label: SCHEMA_FIELD_TRANSLATIONS[f.name]?.[lang] || f.label
+  }));
+
   return {
     ...schema,
     name: TRANSLATIONS[schema.id]?.[lang] || schema.name,

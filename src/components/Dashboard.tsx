@@ -33,7 +33,7 @@ const methodData = [
 ];
 const COLORS = ['#2563EB', '#4F46E5', '#06B6D4', '#10B981'];
 
-export default function Dashboard({ onSync }: { onSync: () => void }) {
+export default function Dashboard({ onSync, lang }: { onSync: () => void; lang?: string }) {
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isAddingEvent, setIsAddingEvent] = useState(false);

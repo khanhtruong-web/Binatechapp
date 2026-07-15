@@ -1,0 +1,110 @@
+import { ModuleSchema } from './types';
+import { Lang, translateOption } from './translations';
+
+/**
+ * Open a print-ready report window for one record (user prints to PDF).
+ * For NDT Reports the layout follows a standard inspection report form
+ * with Inspector / Level III signature blocks.
+ */
+export function printRecord(schema: ModuleSchema, record: any, lang: Lang = 'vi'): void {
+  const isNdt = schema.id === 'NDT Reports';
+  const title = isNdt
+    ? (lang === 'vi' ? 'BÁO CÁO KIỂM TRA KHÔNG PHÁ HỦY' : 'NON-DESTRUCTIVE TESTING REPORT')
+    : schema.name.toUpperCase();
+
+  const fields = schema.fields.filter(f => f.type !== 'file');
+  const rowsHtml = fields.map(f => {
+    const raw = record[f.name] ?? '';
+    const display = f.type === 'select' ? translateOption(String(raw), lang) : String(raw);
+    return `<tr>
+      <td class="label">${escapeHtml(f.label)}</td>
+      <td class="value">${escapeHtml(display) || '&mdash;'}</td>
+    </tr>`;
+  }).join('');
+
+  const resultRaw = String(record.result || '');
+  const isReject = resultRaw.includes('Reject') || resultRaw.includes('Không đạt');
+  const resultBanner = isNdt && resultRaw
+    ? `<div class="result ${isReject ? 'reject' : 'accept'}">${lang === 'vi' ? 'KẾT QUẢ' : 'RESULT'}: ${escapeHtml(translateOption(resultRaw, lang))}</div>`
+    : '';
+
+  const signatures = isNdt ? `
+    <table class="signatures">
+      <tr>
+        <td>
+          <div class="sig-title">${lang === 'vi' ? 'Kỹ thuật viên kiểm tra' : 'NDT Technician'}</div>
+          <div class="sig-space"></div>
+          <div class="sig-line">${lang === 'vi' ? 'Ký & ghi rõ họ tên / Level' : 'Signature & Name / Level'}</div>
+        </td>
+        <td>
+          <div class="sig-title">${lang === 'vi' ? 'Soát xét (Level III)' : 'Reviewed by (Level III)'}</div>
+          <div class="sig-space"></div>
+          <div class="sig-line">${lang === 'vi' ? 'Ký & ghi rõ họ tên' : 'Signature & Name'}</div>
+        </td>
+        <td>
+          <div class="sig-title">${lang === 'vi' ? 'Đại diện Khách hàng' : 'Client Representative'}</div>
+          <div class="sig-space"></div>
+          <div class="sig-line">${lang === 'vi' ? 'Ký & ghi rõ họ tên' : 'Signature & Name'}</div>
+        </td>
+      </tr>
+    </table>` : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(String(record[schema.primaryKey] || schema.name))}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; padding: 32px; font-size: 12px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1d4ed8; padding-bottom: 12px; margin-bottom: 4px; }
+  .brand { font-size: 20px; font-weight: 800; color: #1d4ed8; }
+  .brand small { display: block; font-size: 9px; font-weight: 600; color: #64748b; letter-spacing: 1.5px; }
+  .doc-meta { text-align: right; font-size: 10px; color: #475569; }
+  h1 { text-align: center; font-size: 15px; letter-spacing: 1px; margin: 14px 0 4px; }
+  .report-no { text-align: center; font-size: 11px; color: #475569; margin-bottom: 14px; }
+  .result { text-align: center; font-weight: 800; font-size: 13px; padding: 6px; border: 2px solid; margin-bottom: 14px; }
+  .result.accept { color: #047857; border-color: #047857; background: #ecfdf5; }
+  .result.reject { color: #b91c1c; border-color: #b91c1c; background: #fef2f2; }
+  table.fields { width: 100%; border-collapse: collapse; }
+  table.fields td { border: 1px solid #cbd5e1; padding: 6px 10px; vertical-align: top; }
+  table.fields td.label { width: 38%; background: #f1f5f9; font-weight: 600; color: #334155; }
+  table.signatures { width: 100%; border-collapse: collapse; margin-top: 28px; page-break-inside: avoid; }
+  table.signatures td { width: 33.3%; border: 1px solid #cbd5e1; padding: 10px; text-align: center; }
+  .sig-title { font-weight: 700; font-size: 11px; }
+  .sig-space { height: 64px; }
+  .sig-line { border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 9px; color: #64748b; }
+  .footer { margin-top: 18px; font-size: 9px; color: #94a3b8; text-align: center; }
+  @media print { body { padding: 12px; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">Binatech NDT<small>ERP MANAGEMENT SYSTEM</small></div>
+    <div class="doc-meta">
+      ${lang === 'vi' ? 'Ngày in' : 'Printed'}: ${new Date().toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')}<br/>
+      ${lang === 'vi' ? 'Phân hệ' : 'Module'}: ${escapeHtml(schema.name)}
+    </div>
+  </div>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="report-no">${escapeHtml(String(record[schema.primaryKey] || ''))}</div>
+  ${resultBanner}
+  <table class="fields">${rowsHtml}</table>
+  ${signatures}
+  <div class="footer">${lang === 'vi' ? 'Tài liệu được tạo tự động bởi Binatech NDT ERP — kiểm tra lại trước khi ban hành.' : 'Auto-generated by Binatech NDT ERP — verify before formal issue.'}</div>
+  <script>window.onload = function () { window.print(); };</script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=1000');
+  if (!win) {
+    alert(lang === 'vi' ? 'Trình duyệt chặn popup — vui lòng cho phép popup để in báo cáo.' : 'Popup blocked — please allow popups to print the report.');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}

@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus, Save, Upload, Download, X } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus, Save, Upload, Download, X, Trash2, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { ModuleSchema, FieldDef } from '../lib/types';
 import ImportModal from './ImportModal';
 import { getCachedToken } from '../lib/authCache';
+import { logAudit } from '../lib/audit';
+import { loadModuleData } from '../lib/dataClient';
 
-import { Lang, t } from '../lib/translations';
+import { Lang, t, translateOption } from '../lib/translations';
+import { printRecord } from '../lib/printReport';
 
 interface ModuleViewProps {
   schema: ModuleSchema;
@@ -26,6 +29,8 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  // Master-data options per lookup field: fieldName -> [{ value, label }]
+  const [lookupOptions, setLookupOptions] = useState<Record<string, { value: string; label: string }[]>>({});
 
   // Extract columns for the Data Grid
   const columns = schema.fields.slice(0, 5); // Show first 5 fields in grid
@@ -94,6 +99,73 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
     };
   }, [schema.id]);
 
+  // Load master-data options for lookup fields (autosuggest via datalist)
+  React.useEffect(() => {
+    let cancelled = false;
+    const lookupFields = schema.fields.filter(f => f.type === 'lookup' && f.lookupSource);
+    if (lookupFields.length === 0) return;
+    (async () => {
+      const result: Record<string, { value: string; label: string }[]> = {};
+      for (const field of lookupFields) {
+        const src = field.lookupSource!;
+        const rows = await loadModuleData(src.module);
+        result[field.name] = rows
+          .map(r => ({
+            value: String(r[src.valueField] ?? ''),
+            label: src.labelField ? String(r[src.labelField] ?? '') : ''
+          }))
+          .filter(o => o.value);
+      }
+      if (!cancelled) setLookupOptions(result);
+    })();
+    return () => { cancelled = true; };
+  }, [schema.id]);
+
+  // Weld traceability: every saved NDT Report appends one event row to the Weld Ledger
+  const appendWeldLedgerEntry = async (report: any) => {
+    if (schema.id !== 'NDT Reports' || !report.jointNo) return;
+    const resultStr = String(report.result || '');
+    const repair = String(report.repairStatus || '');
+    let event = 'NDT Requested';
+    if (resultStr.includes('Accept') || resultStr.includes('Đạt')) {
+      event = 'NDT Done - Accept';
+    } else if (resultStr.includes('Reject') || resultStr.includes('Không đạt')) {
+      if (repair.includes('R1')) event = 'Repair R1';
+      else if (repair.includes('R2')) event = 'Repair R2';
+      else if (repair.includes('Cut')) event = 'Cut-out';
+      else event = 'NDT Done - Reject';
+    }
+    const entry = {
+      ledgerId: `WL_${Date.now()}`,
+      jointId: report.jointNo || '',
+      projectId: report.projectId || '',
+      event,
+      date: report.testDate || new Date().toISOString().slice(0, 10),
+      drawingNo: report.drawingNo || '',
+      refReportNo: report.reportNo || '',
+      welderId: report.welderId || '',
+      method: report.method || '',
+      remark: 'Auto-generated from NDT Report'
+    };
+    // Local cache merge so the Weld Ledger tab reflects it immediately
+    try {
+      const cache = JSON.parse(localStorage.getItem('binatech_mock_Weld Ledger') || '[]');
+      cache.push(entry);
+      localStorage.setItem('binatech_mock_Weld Ledger', JSON.stringify(cache));
+    } catch { /* ignore */ }
+    // Best-effort backend push
+    try {
+      const headers: any = { 'Content-Type': 'application/json' };
+      const token = getCachedToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      await fetch(`/api/sheets/${encodeURIComponent('Weld Ledger')}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(entry)
+      });
+    } catch { /* offline — local copy already saved */ }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -137,6 +209,11 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
           throw new Error(errData.error || `Không thể tạo dòng mới: ${res.status}`);
         }
       }
+      // Audit trail + weld traceability
+      const isUpdate = !!(selectedRecord && selectedRecord[schema.primaryKey]);
+      logAudit(isUpdate ? 'Update' : 'Create', schema.id, String(newRecord[schema.primaryKey] || ''));
+      await appendWeldLedgerEntry(newRecord);
+
       // Reload the table data from live sheet
       await fetchRows();
       setIsEditing(false);
@@ -144,7 +221,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
     } catch (err: any) {
       console.error('Error saving to Google Sheets:', err);
       setFetchError(err.message || 'Lỗi khi đồng bộ dữ liệu với Google Sheets.');
-      
+
       // Fallback saving locally to keep app fully functional
       let newDataArray = [...data];
       if (selectedRecord && selectedRecord[schema.primaryKey]) {
@@ -155,12 +232,55 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
       setData(newDataArray);
       localStorage.setItem(`binatech_mock_${schema.id}`, JSON.stringify(newDataArray));
 
+      // Audit trail + weld traceability (local fallback path)
+      logAudit(selectedRecord && selectedRecord[schema.primaryKey] ? 'Update' : 'Create', schema.id, String(newRecord[schema.primaryKey] || ''), 'saved locally (offline)');
+      await appendWeldLedgerEntry(newRecord);
+
       // Dispatch event to update the status bar live syncs count
       window.dispatchEvent(new Event('binatech-sync-event-added'));
-      
+
       setIsEditing(false);
       setSelectedRecord(null);
     } finally {
+      setIsLoadingRows(false);
+    }
+  };
+
+  // Delete the selected record (Admin only, double confirmation)
+  const handleDelete = async () => {
+    if (!selectedRecord || !selectedRecord[schema.primaryKey]) return;
+    const idValue = String(selectedRecord[schema.primaryKey]);
+    const msg = lang === 'vi'
+      ? `Xóa vĩnh viễn bản ghi "${idValue}"? Hành động này không thể hoàn tác.`
+      : `Permanently delete record "${idValue}"? This cannot be undone.`;
+    if (!confirm(msg)) return;
+
+    setIsLoadingRows(true);
+    try {
+      const headers: any = {};
+      const token = getCachedToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(
+        `/api/sheets/${encodeURIComponent(schema.id)}?idColumn=${encodeURIComponent(schema.primaryKey)}&idValue=${encodeURIComponent(idValue)}`,
+        { method: 'DELETE', headers }
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Không thể xóa dòng: ${res.status}`);
+      }
+      logAudit('Delete', schema.id, idValue);
+      await fetchRows();
+    } catch (err: any) {
+      console.error('Error deleting record:', err);
+      // Local fallback so the UI stays consistent offline
+      const newDataArray = data.filter(item => String(item[schema.primaryKey]) !== idValue);
+      setData(newDataArray);
+      localStorage.setItem(`binatech_mock_${schema.id}`, JSON.stringify(newDataArray));
+      logAudit('Delete', schema.id, idValue, 'deleted locally (offline)');
+      window.dispatchEvent(new Event('binatech-sync-event-added'));
+    } finally {
+      setSelectedRecord(null);
+      setIsEditing(false);
       setIsLoadingRows(false);
     }
   };
@@ -298,7 +418,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
                     className="w-full px-2 py-1.5 text-sm border border-neutral-300 rounded shadow-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">{lang === 'vi' ? 'Tất cả' : 'All'}</option>
-                    {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {field.options?.map(opt => <option key={opt} value={opt}>{translateOption(opt, lang)}</option>)}
                   </select>
                 </div>
               ))}
@@ -380,7 +500,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
                     >
                       {columns.map(col => (
                         <td key={col.name} className={`px-6 py-4 ${col.name === schema.primaryKey ? 'font-mono font-medium text-blue-700' : 'text-neutral-800'}`}>
-                          {row[col.name] || '-'}
+                          {col.type === 'select' ? (translateOption(String(row[col.name] || ''), lang) || '-') : (row[col.name] || '-')}
                         </td>
                       ))}
                     </tr>
@@ -398,14 +518,34 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
               <h3 className="font-semibold text-neutral-800">
                 {isEditing ? (selectedRecord && selectedRecord[schema.primaryKey] ? t('Edit Record', lang) : t('New Record', lang)) : t('Record Details', lang)}
               </h3>
-              {userRole !== 'Employee' && !isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
-                >
-                  {t('Edit Option', lang)}
-                </button>
-              )}
+              <div className="flex items-center space-x-2">
+                {!isEditing && selectedRecord?.[schema.primaryKey] && (
+                  <button
+                    onClick={() => printRecord(schema, selectedRecord, lang)}
+                    className="flex items-center space-x-1 text-sm text-neutral-600 hover:text-neutral-900 font-medium px-3 py-1.5 border border-neutral-300 rounded hover:bg-neutral-50 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>{lang === 'vi' ? 'In / PDF' : 'Print / PDF'}</span>
+                  </button>
+                )}
+                {userRole === 'Admin' && !isEditing && selectedRecord?.[schema.primaryKey] && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center space-x-1 text-sm text-rose-600 hover:text-rose-800 font-medium px-3 py-1.5 border border-rose-200 rounded hover:bg-rose-50 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{lang === 'vi' ? 'Xóa' : 'Delete'}</span>
+                  </button>
+                )}
+                {userRole !== 'Employee' && !isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                  >
+                    {t('Edit Option', lang)}
+                  </button>
+                )}
+              </div>
             </div>
             
             <form onSubmit={handleSave} className="flex-1 flex flex-col overflow-hidden">
@@ -428,7 +568,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
                               className="w-full px-3 py-2 border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-neutral-100 disabled:text-neutral-500 text-sm bg-white"
                             >
                               <option value="">Select...</option>
-                              {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                              {field.options?.map(opt => <option key={opt} value={opt}>{translateOption(opt, lang)}</option>)}
                             </select>
                           </div>
                         ) : field.type === 'file' ? (
@@ -450,17 +590,28 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
                             required={field.required}
                             className="w-full px-3 py-2 border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-neutral-100 disabled:text-neutral-500 text-sm resize-y"
                           />
-                        ) : field.type === 'lookup' ? ( // Smart Input visual mockup
+                        ) : field.type === 'lookup' ? ( // Master-data autosuggest (datalist)
                           <div className="relative">
-                            <input 
+                            <input
                               name={field.name}
-                              type="text" 
+                              type="text"
                               disabled={!isEditing}
                               defaultValue={selectedRecord?.[field.name] || ''}
+                              required={field.required}
+                              list={lookupOptions[field.name]?.length ? `dl-${schema.id}-${field.name}` : undefined}
                               placeholder={`Search ${field.label}...`}
                               className="w-full px-3 py-2 border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-neutral-100 disabled:text-neutral-500 text-sm"
                             />
-                            <div className="absolute right-2 top-2 text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">Auto-suggest</div>
+                            {lookupOptions[field.name]?.length ? (
+                              <datalist id={`dl-${schema.id}-${field.name}`}>
+                                {lookupOptions[field.name].map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </datalist>
+                            ) : null}
+                            <div className="absolute right-2 top-2 text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                              {lookupOptions[field.name]?.length ? `${lookupOptions[field.name].length} ${lang === 'vi' ? 'gợi ý' : 'options'}` : 'Auto-suggest'}
+                            </div>
                           </div>
                         ) : (
                           <input 
@@ -523,6 +674,7 @@ export default function ModuleView({ schema, userRole, lang = 'vi' }: ModuleView
             setData(newData);
             localStorage.setItem(`binatech_mock_${schema.id}`, JSON.stringify(newData));
             setIsImporting(false);
+            logAudit('Import', schema.id, `${importedData.length} rows`, `${toCreate.length} created, ${toUpdate.length} updated`);
 
             // Best-effort sync to backend (Google Sheets)
             setIsLoadingRows(true);

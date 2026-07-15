@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 // Import actual Google Sheets utilities
-import { getRows, addRow, updateRow } from './src/server/lib/googleSheets.js';
+import { getRows, addRow, updateRow, deleteRow } from './src/server/lib/googleSheets.js';
 import { 
   listDriveFiles, 
   syncDriveFolders, 
@@ -145,6 +145,21 @@ async function startServer() {
       const { idColumn, idValue, newData } = req.body;
       await updateRow(req.params.sheetName, idColumn, idValue, newData, token);
       res.json({ status: "ok", message: "Row updated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/sheets/:sheetName", async (req, res) => {
+    try {
+      const token = getAccessToken(req);
+      const idColumn = (req.query.idColumn as string) || req.body?.idColumn;
+      const idValue = (req.query.idValue as string) || req.body?.idValue;
+      if (!idColumn || !idValue) {
+        return res.status(400).json({ error: 'idColumn and idValue are required' });
+      }
+      await deleteRow(req.params.sheetName, idColumn, idValue, token);
+      res.json({ status: "ok", message: "Row deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

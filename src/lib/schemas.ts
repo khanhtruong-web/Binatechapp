@@ -31,8 +31,8 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
     primaryKey: 'invoiceId',
     fields: [
       { name: 'invoiceId', label: 'Invoice ID', type: 'text', required: true },
-      { name: 'client', label: 'Client', type: 'lookup' },
-      { name: 'projectId', label: 'Project ID', type: 'lookup' },
+      { name: 'client', label: 'Client', type: 'lookup', lookupSource: { module: 'Marketing', valueField: 'clientId', labelField: 'companyName' } },
+      { name: 'projectId', label: 'Project ID', type: 'lookup', lookupSource: { module: 'Project Control', valueField: 'projectId', labelField: 'site' } },
       { name: 'amount', label: 'Amount ($)', type: 'number', required: true },
       { name: 'status', label: 'Payment Status', type: 'select', options: ['Pending', 'Partially Paid', 'Paid', 'Overdue'] },
       { name: 'vatPercent', label: 'VAT (%)', type: 'number' },
@@ -69,12 +69,12 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'eyeTestDate', label: 'Last Eye Test Date', type: 'date' },
       { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
       { name: 'dob', label: 'Date of Birth', type: 'date' },
-      { name: 'nationalId', label: 'National ID / Passport', type: 'text' },
-      { name: 'socialInsNo', label: 'Social Insurance No.', type: 'text' },
-      { name: 'bankAccount', label: 'Bank Account No.', type: 'text' },
-      { name: 'bankName', label: 'Bank Name', type: 'text' },
-      { name: 'baseSalary', label: 'Base Salary ($)', type: 'number' },
-      { name: 'allowance', label: 'Project Allowance ($)', type: 'number' },
+      { name: 'nationalId', label: 'National ID / Passport', type: 'text', roles: ['Admin'] },
+      { name: 'socialInsNo', label: 'Social Insurance No.', type: 'text', roles: ['Admin'] },
+      { name: 'bankAccount', label: 'Bank Account No.', type: 'text', roles: ['Admin'] },
+      { name: 'bankName', label: 'Bank Name', type: 'text', roles: ['Admin'] },
+      { name: 'baseSalary', label: 'Base Salary ($)', type: 'number', roles: ['Admin'] },
+      { name: 'allowance', label: 'Project Allowance ($)', type: 'number', roles: ['Admin'] },
       { name: 'status', label: 'Employment Status', type: 'select', options: ['Active', 'Probation', 'Terminated'] }
     ]
   },
@@ -84,7 +84,7 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
     primaryKey: 'projectId',
     fields: [
       { name: 'projectId', label: 'Project ID', type: 'text', required: true },
-      { name: 'client', label: 'Client', type: 'lookup' },
+      { name: 'client', label: 'Client', type: 'lookup', lookupSource: { module: 'Marketing', valueField: 'clientId', labelField: 'companyName' } },
       { name: 'status', label: 'Status', type: 'select', options: ['Planned', 'Ongoing', 'On Hold', 'Completed', 'Closed'] },
       { name: 'progress', label: 'Progress (%)', type: 'number' },
       { name: 'endDate', label: 'End Date', type: 'date' },
@@ -93,7 +93,7 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'site', label: 'Site / Location', type: 'text' },
       { name: 'methods', label: 'NDT Methods', type: 'select', options: ['RT', 'UT', 'PAUT', 'TOFD', 'MT', 'PT', 'UTM', 'Multiple'] },
       { name: 'contractValue', label: 'Contract Value ($)', type: 'number' },
-      { name: 'personnel', label: 'Assigned Personnel', type: 'lookup' },
+      { name: 'personnel', label: 'Assigned Personnel', type: 'lookup', lookupSource: { module: 'HR (Personnel)', valueField: 'empId', labelField: 'name' } },
       { name: 'projectManager', label: 'Project Manager (PM)', type: 'text' },
       { name: 'actualCost', label: 'Actual Cost Incurred ($)', type: 'number' },
       { name: 'estMargin', label: 'Expected Margin (%)', type: 'number' },
@@ -129,7 +129,7 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
     primaryKey: 'logId',
     fields: [
       { name: 'logId', label: 'Log ID', type: 'text', required: true },
-      { name: 'empId', label: 'Employee', type: 'lookup' },
+      { name: 'empId', label: 'Employee', type: 'lookup', lookupSource: { module: 'HR (Personnel)', valueField: 'empId', labelField: 'name' } },
       { name: 'course', label: 'Course Name', type: 'text' },
       { name: 'type', label: 'Type', type: 'select', options: ['Internal', 'External', 'OJT'] },
       { name: 'result', label: 'Result', type: 'select', options: ['Pass', 'Fail', 'Attended'] },
@@ -178,12 +178,12 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
     primaryKey: 'reportNo',
     fields: [
       { name: 'reportNo', label: 'Report No.', type: 'text', required: true },
-      { name: 'projectId', label: 'Project ID', type: 'lookup', required: true },
+      { name: 'projectId', label: 'Project ID', type: 'lookup', required: true, lookupSource: { module: 'Project Control', valueField: 'projectId', labelField: 'site' } },
       { name: 'jointNo', label: 'Joint / Weld No.', type: 'text' },
       { name: 'method', label: 'Method', type: 'select', options: ['RT', 'UT', 'PAUT', 'TOFD', 'MT', 'PT', 'VT', 'UTM'] },
       { name: 'result', label: 'Result', type: 'select', options: ['Accept', 'Reject'] },
       { name: 'drawingNo', label: 'Drawing / ISO No.', type: 'text' },
-      { name: 'welderId', label: 'Welder ID', type: 'text' },
+      { name: 'welderId', label: 'Welder ID', type: 'lookup', lookupSource: { module: 'Welders', valueField: 'welderId', labelField: 'name' } },
       { name: 'welderName', label: 'Welder Full Name', type: 'text' },
       { name: 'segmentNo', label: 'Inspection Segment', type: 'text' },
       { name: 'wpsNo', label: 'WPS No.', type: 'text' },
@@ -192,14 +192,14 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'diameter', label: 'Diameter (NPS/OD)', type: 'text' },
       { name: 'sensitivity', label: 'Inspection Sensitivity (%)', type: 'number' },
       { name: 'filmSize', label: 'Film / Probe Specification', type: 'text' },
-      { name: 'procedureNo', label: 'NDT Procedure No.', type: 'lookup' },
-      { name: 'acceptanceCriteria', label: 'Acceptance Criteria', type: 'select', options: ['ASME VIII Div.1', 'ASME B31.3 Normal', 'ASME B31.3 Severe Cyclic', 'API 1104', 'API 650', 'API 650', 'AWS D1.1', 'ISO 5817-B', 'ISO 5817-C'] },
-      { name: 'defectType', label: 'Defect Type', type: 'select', options: ['None', 'Porosity', 'Slag Inclusion', 'Lack of Fusion', 'Incomplete Penetration', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Incomplete Penetration', 'Crack', 'Undercut', 'Tungsten Inclusion', 'Burn Through', 'Other'] },
+      { name: 'procedureNo', label: 'NDT Procedure No.', type: 'lookup', lookupSource: { module: 'Technical Dossier', valueField: 'docId', labelField: 'title' } },
+      { name: 'acceptanceCriteria', label: 'Acceptance Criteria', type: 'select', options: ['ASME VIII Div.1', 'ASME B31.3 Normal', 'ASME B31.3 Severe Cyclic', 'API 1104', 'API 650', 'AWS D1.1', 'ISO 5817-B', 'ISO 5817-C'] },
+      { name: 'defectType', label: 'Defect Type', type: 'select', options: ['None', 'Porosity', 'Slag Inclusion', 'Lack of Fusion', 'Incomplete Penetration', 'Crack', 'Undercut', 'Tungsten Inclusion', 'Burn Through', 'Other'] },
       { name: 'defectLocation', label: 'Defect Location / Extent', type: 'text' },
       { name: 'repairStatus', label: 'Repair Status', type: 'select', options: ['N/A', 'R1', 'R2', 'Cut-out'] },
       { name: 'reviewStatus', label: 'Review Status', type: 'select', options: ['Draft', 'Checked by Inspector', 'Approved by Level III'] },
       { name: 'testDate', label: 'Test Date', type: 'date' },
-      { name: 'inspectorId', label: 'Inspector', type: 'lookup' },
+      { name: 'inspectorId', label: 'Inspector', type: 'lookup', lookupSource: { module: 'HR (Personnel)', valueField: 'empId', labelField: 'name' } },
       { name: 'driveLink', label: 'Report PDF', type: 'file' }
     ]
   },
@@ -209,7 +209,7 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
     primaryKey: 'tenderId',
     fields: [
       { name: 'tenderId', label: 'Tender ID', type: 'text', required: true },
-      { name: 'client', label: 'Client', type: 'lookup' },
+      { name: 'client', label: 'Client', type: 'lookup', lookupSource: { module: 'Marketing', valueField: 'clientId', labelField: 'companyName' } },
       { name: 'projectName', label: 'Project Name', type: 'text' },
       { name: 'deadline', label: 'Deadline', type: 'date' },
       { name: 'status', label: 'Status', type: 'select', options: ['Preparing', 'Submitted', 'Won', 'Lost', 'Cancelled'] },
@@ -223,6 +223,42 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'techMatrix', label: 'Technical Matrix', type: 'file' },
       { name: 'commMatrix', label: 'Commercial Matrix', type: 'file' },
       { name: 'remarks', label: 'Remarks', type: 'textarea' }
+    ]
+  },
+  // Master data: welders qualified on site — powers welderId lookup in NDT Reports
+  'Welders': {
+    id: 'Welders',
+    name: 'Welders',
+    primaryKey: 'welderId',
+    fields: [
+      { name: 'welderId', label: 'Welder ID / Stamp No.', type: 'text', required: true },
+      { name: 'name', label: 'Full Name', type: 'text', required: true },
+      { name: 'process', label: 'Welding Process', type: 'select', options: ['SMAW', 'GTAW', 'GMAW', 'FCAW', 'SAW', 'GTAW+SMAW', 'Other'] },
+      { name: 'qualExpiry', label: 'Qualification Expiry', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['Qualified', 'Expired', 'Suspended'] },
+      { name: 'qualifiedWps', label: 'Qualified WPS List', type: 'text' },
+      { name: 'positions', label: 'Qualified Positions', type: 'text' },
+      { name: 'employer', label: 'Employer / Subcontractor', type: 'text' },
+      { name: 'certNo', label: 'WQT Certificate No.', type: 'text' },
+      { name: 'remarks', label: 'Remarks', type: 'textarea' }
+    ]
+  },
+  // Weld Ledger: one row per lifecycle event of a weld joint — full traceability (Fit-up → Final Accept)
+  'Weld Ledger': {
+    id: 'Weld Ledger',
+    name: 'Weld Ledger',
+    primaryKey: 'ledgerId',
+    fields: [
+      { name: 'ledgerId', label: 'Ledger ID', type: 'text', required: true },
+      { name: 'jointId', label: 'Joint / Weld No.', type: 'text', required: true },
+      { name: 'projectId', label: 'Project ID', type: 'lookup', lookupSource: { module: 'Project Control', valueField: 'projectId', labelField: 'site' } },
+      { name: 'event', label: 'Event', type: 'select', options: ['Fit-up', 'Welded', 'NDT Requested', 'NDT Done - Accept', 'NDT Done - Reject', 'Repair R1', 'Repair R2', 'Cut-out', 'Re-test Accept', 'PWHT', 'Final Accept'] },
+      { name: 'date', label: 'Event Date', type: 'date' },
+      { name: 'drawingNo', label: 'Drawing / ISO No.', type: 'text' },
+      { name: 'refReportNo', label: 'Ref. Report No.', type: 'text' },
+      { name: 'welderId', label: 'Welder ID', type: 'lookup', lookupSource: { module: 'Welders', valueField: 'welderId', labelField: 'name' } },
+      { name: 'method', label: 'NDT Method', type: 'select', options: ['', 'RT', 'UT', 'PAUT', 'TOFD', 'MT', 'PT', 'VT', 'UTM'] },
+      { name: 'remark', label: 'Remark', type: 'textarea' }
     ]
   }
 };

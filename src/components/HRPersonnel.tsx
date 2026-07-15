@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer, PieChart, Pie, Tooltip as RechartsTooltip
 } from 'recharts';
 import {
-  CVRecord, CvDB, Discipline, loadCvDB, saveCvDB, getGeminiKey,
+  CVRecord, CvDB, Discipline, DEFAULT_DISCIPLINES, loadCvDB, saveCvDB, getGeminiKey,
   extractFileText, callGeminiExtract, toCvRecord, findDuplicate, parseYears,
   callGeminiText, miniMarkdownToHtml,
 } from '../lib/cv';

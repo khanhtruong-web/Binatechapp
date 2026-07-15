@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Users, Briefcase, FileText, BookOpen, PenTool, FileCheck, Target,
   LayoutDashboard, LogOut, Bot, GraduationCap, Settings as SettingsIcon,
-  Database, RefreshCw, HardDrive, Wifi, WifiOff
+  Database, RefreshCw, HardDrive, Wifi, WifiOff, Flame, ClipboardList, BarChart2,
+  Menu
 } from 'lucide-react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -12,6 +13,7 @@ import AIAssistant from './components/AIAssistant';
 import Settings from './components/Settings';
 import QuotationGenerator from './components/QuotationGenerator';
 import HRPersonnel from './components/HRPersonnel';
+import ReportsTab from './components/ReportsTab';
 import BinatechLogo from './components/BinatechLogo';
 import { MODULE_SCHEMAS } from './lib/schemas';
 import { Lang, t, localizeSchema } from './lib/translations';
@@ -25,6 +27,17 @@ export default function App() {
   );
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('BINATECH_LANG') as Lang) || 'vi');
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
+    return localStorage.getItem('BINATECH_SIDEBAR_PINNED') === 'true';
+  });
+
+  const toggleSidebarPinned = () => {
+    const next = !isSidebarPinned;
+    setIsSidebarPinned(next);
+    localStorage.setItem('BINATECH_SIDEBAR_PINNED', String(next));
+  };
+
+  const isOpen = isSidebarPinned || isSidebarHovered;
   
   // Connection and Sync states
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -96,6 +109,9 @@ export default function App() {
     { name: 'Training', icon: BookOpen, roles: ['Admin', 'Manager', 'Employee'] },
     { name: 'Equipment', icon: PenTool, roles: ['Admin', 'Manager', 'Employee'] },
     { name: 'NDT Reports', icon: FileCheck, roles: ['Admin', 'Manager', 'Employee'] },
+    { name: 'Weld Ledger', icon: ClipboardList, roles: ['Admin', 'Manager', 'Employee'] },
+    { name: 'Welders', icon: Flame, roles: ['Admin', 'Manager'] },
+    { name: 'Reports', icon: BarChart2, roles: ['Admin', 'Manager'] },
     { name: 'Tender Dossier', icon: GraduationCap, roles: ['Admin', 'Manager'] },
   ];
 
@@ -104,40 +120,60 @@ export default function App() {
     tabs.push({ name: 'Settings', icon: SettingsIcon, roles: ['Admin'] });
   }
 
-  const activeSchema = activeTab ? localizeSchema(MODULE_SCHEMAS[activeTab], lang) : null;
+  // Field-level security: strip fields the current role cannot view/edit/export (e.g. salary, bank account)
+  const localizedSchema = activeTab ? localizeSchema(MODULE_SCHEMAS[activeTab], lang) : null;
+  const activeSchema = localizedSchema
+    ? { ...localizedSchema, fields: localizedSchema.fields.filter(f => !f.roles || f.roles.includes(userRole)) }
+    : null;
 
   return (
     <div className="flex h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
       {/* Spacer to prevent layout shift when sidebar overlays */}
-      <div className="w-20 flex-shrink-0 hidden md:block transition-all duration-300"></div>
+      <div className={`${isOpen ? 'w-64' : 'w-20'} flex-shrink-0 hidden md:block transition-all duration-300`}></div>
 
       {/* Sidebar Navigation */}
       <aside 
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`h-screen bg-slate-950 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out z-30 absolute left-0 top-0 bottom-0 border-r border-slate-900 ${
-          isSidebarHovered ? 'w-64' : 'w-20'
+        className={`h-screen bg-slate-955 text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out z-30 absolute left-0 top-0 bottom-0 border-r border-slate-900 ${
+          isOpen ? 'w-64' : 'w-20'
         }`}
       >
-        {/* Logo Home Button */}
-        <div className={`p-4 border-b border-slate-800/80 flex items-center h-20 transition-all duration-300 ${
-          isSidebarHovered ? 'justify-between px-5' : 'justify-center px-0'
+        {/* Logo Header & Pin Toggle Button */}
+        <div className={`p-4 border-b border-slate-800/80 flex flex-col items-center justify-center gap-2 transition-all duration-300 ${
+          isOpen ? 'h-20 flex-row justify-between px-5' : 'h-28 flex-col justify-center px-0'
         }`}>
           <button 
             onClick={() => setActiveTab('Dashboard')}
             title={t('Dashboard', lang)}
             className="cursor-pointer focus:outline-none transition-transform hover:scale-105 active:scale-95"
           >
-            <BinatechLogo collapsed={!isSidebarHovered} variant="dark" />
+            <BinatechLogo collapsed={!isOpen} variant="dark" />
           </button>
-          {isSidebarHovered && (
+          
+          <div className={`flex items-center gap-2 ${isOpen ? 'flex-row' : 'flex-col mt-1'}`}>
+            {isOpen && (
+              <button 
+                onClick={toggleLang}
+                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-350 cursor-pointer flex-shrink-0 animate-fade-in-up"
+              >
+                {lang === 'vi' ? 'EN' : 'VI'}
+              </button>
+            )}
+            
+            {/* Hamburger Pin/Unpin Menu toggle */}
             <button 
-              onClick={toggleLang}
-              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-350 cursor-pointer flex-shrink-0 animate-fade-in-up"
+              onClick={toggleSidebarPinned}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer text-slate-400 hover:text-white ${
+                isSidebarPinned 
+                  ? 'bg-blue-650/15 border-blue-500/40 text-blue-400' 
+                  : 'bg-slate-900 border-slate-800'
+              }`}
+              title={isSidebarPinned ? (lang === 'vi' ? "Mở khóa Sidebar (Co giãn)" : "Unlock Sidebar") : (lang === 'vi' ? "Khóa Sidebar (Ghim cố định)" : "Lock Sidebar")}
             >
-              {lang === 'vi' ? 'EN' : 'VI'}
+              <Menu className="w-4 h-4" />
             </button>
-          )}
+          </div>
         </div>
 
         {/* Navigation list */}
@@ -150,18 +186,18 @@ export default function App() {
                 <li key={tab.name}>
                   <button
                     onClick={() => setActiveTab(tab.name)}
-                    title={!isSidebarHovered ? t(tab.name, lang) : undefined}
+                    title={!isOpen ? t(tab.name, lang) : undefined}
                     className={`w-full flex items-center py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
                       isActive 
                         ? 'bg-blue-600/15 border-l-4 border-blue-550 text-blue-400 font-bold' 
                         : 'text-slate-400 hover:bg-slate-900 hover:text-white border-l-4 border-transparent'
                     } ${
-                      isSidebarHovered ? 'px-3 justify-start' : 'px-0 justify-center'
+                      isOpen ? 'px-3 justify-start' : 'px-0 justify-center'
                     }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden text-left ${
-                      isSidebarHovered 
+                      isOpen 
                         ? 'opacity-100 w-auto ml-3 pointer-events-auto' 
                         : 'opacity-0 w-0 pointer-events-none'
                     }`}>
@@ -178,7 +214,7 @@ export default function App() {
         <div className="p-4 border-t border-slate-800/80 space-y-2">
           {/* User profile & role badge */}
           <div className={`flex items-center bg-slate-900/40 rounded-xl border border-slate-900/60 ${
-            isSidebarHovered ? 'space-x-3 px-3 py-2' : 'justify-center p-2'
+            isOpen ? 'space-x-3 px-3 py-2' : 'justify-center p-2'
           }`}>
             {userInfo?.picture ? (
               <img src={userInfo.picture} alt="Profile" className="w-9 h-9 rounded-full border border-slate-700 flex-shrink-0" />
@@ -188,7 +224,7 @@ export default function App() {
               </div>
             )}
             <div className={`min-w-0 flex-1 transition-all duration-300 ${
-              isSidebarHovered ? 'opacity-100 w-auto pointer-events-auto block' : 'opacity-0 w-0 pointer-events-none hidden'
+              isOpen ? 'opacity-100 w-auto pointer-events-auto block' : 'opacity-0 w-0 pointer-events-none hidden'
             }`}>
               <p className="text-xs font-semibold text-slate-200 truncate">{userInfo?.name || 'User'}</p>
               <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 ${
@@ -203,32 +239,43 @@ export default function App() {
 
           <button 
             onClick={() => setShowAIAssistant(true)}
-            title={!isSidebarHovered ? t('AI Assistant', lang) : undefined}
+            title={!isOpen ? t('AI Assistant', lang) : undefined}
             className={`w-full flex items-center bg-slate-900 hover:bg-slate-850 text-blue-400 border border-blue-900/30 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium cursor-pointer ${
-              isSidebarHovered ? 'px-4 justify-start' : 'px-0 justify-center'
+              isOpen ? 'px-4 justify-start' : 'px-0 justify-center'
             }`}
           >
             <Bot className="w-5 h-5 flex-shrink-0" />
             <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${
-              isSidebarHovered ? 'opacity-100 w-auto ml-3 block' : 'opacity-0 w-0 hidden'
+              isOpen ? 'opacity-100 w-auto ml-3 block' : 'opacity-0 w-0 hidden'
             }`}>
               {t('AI Assistant', lang)}
             </span>
           </button>
           <button 
             onClick={() => setIsAuthenticated(false)}
-            title={!isSidebarHovered ? t('Sign Out', lang) : undefined}
+            title={!isOpen ? t('Sign Out', lang) : undefined}
             className={`w-full flex items-center bg-slate-900 hover:bg-slate-850 text-rose-455 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium cursor-pointer ${
-              isSidebarHovered ? 'px-4 justify-start' : 'px-0 justify-center'
+              isOpen ? 'px-4 justify-start' : 'px-0 justify-center'
             }`}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${
-              isSidebarHovered ? 'opacity-100 w-auto ml-3 block' : 'opacity-0 w-0 hidden'
+              isOpen ? 'opacity-100 w-auto ml-3 block' : 'opacity-0 w-0 hidden'
             }`}>
               {t('Sign Out', lang)}
             </span>
           </button>
+        </div>
+
+        {/* Version & Date */}
+        <div className={`px-4 pb-4 pt-2 text-[10px] text-slate-500 flex transition-all duration-305 border-t border-slate-900/40 select-none ${
+          isOpen ? 'justify-start pl-5' : 'justify-center'
+        }`}>
+          <span>
+            {isOpen 
+              ? `${lang === 'vi' ? 'Phiên bản v2.1 • Cập nhật' : 'Version v2.1 • Updated'} 15/07/2026` 
+              : 'v2.1'}
+          </span>
         </div>
       </aside>
 
@@ -292,6 +339,8 @@ export default function App() {
           <Settings userInfo={userInfo} lang={lang} />
         ) : activeTab === 'HR (Personnel)' ? (
           <HRPersonnel userRole={userRole} lang={lang} />
+        ) : activeTab === 'Reports' ? (
+          <ReportsTab userRole={userRole} lang={lang} />
         ) : activeSchema ? (
           <ModuleView schema={activeSchema} key={activeSchema.id} userRole={userRole} lang={lang} />
         ) : (

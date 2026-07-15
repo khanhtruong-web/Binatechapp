@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { getGoogleAuth } from './googleAuth.js';
 import fs from 'fs';
-import { getLocalRows, addLocalRow as addLocalDbRow, updateLocalRow as updateLocalDbRow } from './localDb.js';
+import { getLocalRows, addLocalRow as addLocalDbRow, updateLocalRow as updateLocalDbRow, deleteLocalRow as deleteLocalDbRow } from './localDb.js';
 
 // Helper to check if Google Config is set up
 function hasGoogleConfig(): boolean {
@@ -203,6 +203,66 @@ export async function updateRow(sheetName: string, idColumn: string, idValue: st
   } catch (err: any) {
     console.warn(`[Google Sheets fallback] API update failed for ${sheetName}: ${err.message}. Writing update to local file db.`);
     return updateLocalDbRow(sheetName, idColumn, idValue, newData);
+  }
+}
+
+export async function deleteRow(sheetName: string, idColumn: string, idValue: string, accessToken?: string) {
+  if (!accessToken && !hasGoogleConfig()) {
+    console.log(`[Google Sheets fallback] No configuration found. Deleting ${sheetName} row in local file db.`);
+    return deleteLocalDbRow(sheetName, idColumn, idValue);
+  }
+
+  try {
+    const sheets = await getSheetsClient(accessToken);
+    const spreadsheetId = await getSpreadsheetId();
+
+    // 1. Fetch headers and rows to locate the target row
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+    });
+    const rows = response.data.values || [];
+    if (rows.length === 0) throw new Error(`Sheet ${sheetName} is empty`);
+
+    const headers = rows[0];
+    const idColIdx = headers.indexOf(idColumn);
+    if (idColIdx === -1) throw new Error(`Column ${idColumn} not found in sheet ${sheetName}`);
+
+    let rowIndex = -1; // 0-based index within the sheet grid (header = 0)
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][idColIdx] === idValue) { rowIndex = i; break; }
+    }
+    if (rowIndex === -1) throw new Error(`Row with ${idColumn} = ${idValue} not found in sheet ${sheetName}`);
+
+    // 2. Resolve the numeric sheetId of the tab (required by deleteDimension)
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const targetSheet = meta.data.sheets?.find(s => s.properties?.title === sheetName);
+    if (!targetSheet?.properties?.sheetId && targetSheet?.properties?.sheetId !== 0) {
+      throw new Error(`Sheet tab ${sheetName} not found in spreadsheet`);
+    }
+
+    // 3. Delete the row
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: targetSheet.properties.sheetId,
+              dimension: 'ROWS',
+              startIndex: rowIndex,
+              endIndex: rowIndex + 1
+            }
+          }
+        }]
+      }
+    });
+
+    // Invalidate cache
+    sheetCache.delete(sheetName);
+  } catch (err: any) {
+    console.warn(`[Google Sheets fallback] API delete failed for ${sheetName}: ${err.message}. Deleting from local file db.`);
+    return deleteLocalDbRow(sheetName, idColumn, idValue);
   }
 }
 

@@ -37,6 +37,12 @@ const DEFAULT_MOCK_DATA: Record<string, any[]> = {
   ],
   'Tender Dossier': [
     { tenderId: "TEN-2026-09", client: "C001", deadline: "2026-08-01", status: "Preparing", techMatrix: "https://drive.google.com/open?id=simulated_tech", commMatrix: "https://drive.google.com/open?id=simulated_comm" }
+  ],
+  'Welders': [
+    { welderId: "W-015", name: "Le Van C", process: "GTAW+SMAW", qualExpiry: "2027-03-01", status: "Qualified", qualifiedWps: "WPS-P1-01, WPS-P1-02", positions: "6G", employer: "Binatech Sub A", certNo: "WQT-2026-015" }
+  ],
+  'Weld Ledger': [
+    { ledgerId: "WL_SEED_001", jointId: "J-101", projectId: "PRJ-001", event: "NDT Done - Accept", date: "2026-07-01", drawingNo: "ISO-TK-001", refReportNo: "REP-2026-001", welderId: "W-015", method: "UT", remark: "Seed data" }
   ]
 };
 
@@ -65,6 +71,18 @@ export function addLocalRow(sheetName: string, rowData: any) {
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
   } catch (error) {
     console.error('Error writing to local DB:', error);
+  }
+}
+
+export function deleteLocalRow(sheetName: string, idColumn: string, idValue: string) {
+  try {
+    const data = fs.readFileSync(LOCAL_DB_PATH, 'utf8');
+    const db = JSON.parse(data);
+    if (!db[sheetName]) return;
+    db[sheetName] = db[sheetName].filter((row: any) => String(row[idColumn]) !== String(idValue));
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error deleting from local DB:', error);
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Database, Key, Shield, User, Save, CheckCircle2 } from 'lucide-react';
 
-export default function Settings({ userInfo }: { userInfo?: any }) {
+export default function Settings({ userInfo, lang }: { userInfo?: any; lang?: string }) {
   const [googleClientId, setGoogleClientId] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [googleSheetsId, setGoogleSheetsId] = useState('');

@@ -84,8 +84,8 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
               <p className="text-sm text-slate-500">Creating & syncing Google Drive structure</p>
             </div>
           </div>
-          {status === 'complete' && (
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+          {status !== 'syncing' && (
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" title="Close">
               <X className="w-5 h-5" />
             </button>
           )}
@@ -107,7 +107,7 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {status === 'error' && errorMessage && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex gap-2 items-start">
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex gap-2 items-start animate-fade-in-up">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div className="leading-relaxed">
                 <span className="font-semibold">Đồng bộ thất bại:</span> {errorMessage}
@@ -143,18 +143,26 @@ export default function DriveSyncModal({ onClose }: { onClose: () => void }) {
             {status === 'complete' ? (
               <button 
                 onClick={onClose}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
               >
                 Done
               </button>
             ) : status === 'error' ? (
-              <button 
-                onClick={startSync}
-                className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium flex items-center space-x-2 hover:bg-slate-700"
-              >
-                <AlertCircle className="w-4 h-4" />
-                <span>Retry Sync</span>
-              </button>
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={onClose}
+                  className="px-4 py-2 bg-white border border-slate-350 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-all cursor-pointer active:scale-95"
+                >
+                  Exit / Close
+                </button>
+                <button 
+                  onClick={startSync}
+                  className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium flex items-center space-x-2 hover:bg-slate-800 transition-all cursor-pointer active:scale-95"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Retry Sync</span>
+                </button>
+              </div>
             ) : (
               <button 
                 disabled
