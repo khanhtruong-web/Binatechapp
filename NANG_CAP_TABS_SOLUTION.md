@@ -62,7 +62,17 @@ Video giới thiệu **Web-based Advanced Inventory Management System** — web 
 4. **Song ngữ EN/VI**: toggle 1 chạm như EN/FR trong video (từ điển label tập trung trong schemas).
 5. **Delete record + xác nhận**: hiện chưa có xoá dòng trong ModuleView.
 
-## 4. Files Đã Thay Đổi
+## 4. Verify Trên Máy Local (BẮT BUỘC trước khi commit)
+
+```bash
+npm install        # cài xlsx + khôi phục binary đúng platform (esbuild/rollup)
+npm run lint       # tsc --noEmit
+npm run dev        # test UI: Export Excel, Import xlsx/csv, Sort cột, Filter panel
+```
+
+> Lưu ý: nếu `npm run dev` báo lỗi esbuild/rollup platform mismatch, chạy: xoá `node_modules` rồi `npm install` lại.
+
+## 5. Files Đã Thay Đổi
 
 | File | Thay đổi |
 |---|---|

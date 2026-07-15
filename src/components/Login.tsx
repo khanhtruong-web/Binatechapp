@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Target, Lock, AlertCircle, Loader2, Key, Copy, Check, ShieldAlert, Edit2, Save, ChevronDown, Settings } from 'lucide-react';
+import { Lock, AlertCircle, Loader2, Key, Copy, Check, ShieldAlert, Edit2, Save, ChevronDown, Settings } from 'lucide-react';
 import { setCachedToken } from '../lib/authCache';
+import BinatechLogo from './BinatechLogo';
 
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -109,15 +110,10 @@ export default function Login({ onLogin, lang = 'vi', toggleLang }: { onLogin: (
 
         {/* Branding content */}
         <div className="relative z-10 text-center lg:text-left max-w-sm">
-          {/* Logo */}
-          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-6 shadow-xl animate-pulse-glow">
-            <Target className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
+          {/* Brand Logo */}
+          <div className="mb-6 flex justify-center lg:justify-start">
+            <BinatechLogo variant="dark" className="scale-125 origin-left" />
           </div>
-
-          {/* Title */}
-          <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight mb-2">
-            Binatech NDT
-          </h1>
           <p className="text-blue-300/80 font-medium text-sm lg:text-base mb-5">
             Enterprise Resource Planning System
           </p>

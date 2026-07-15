@@ -107,6 +107,12 @@
 - **Khắc phục:** Định nghĩa kiểu `type Lang = 'vi' | 'en'` tập trung tại `src/lib/schemas.ts`, truyền prop `lang` từ `App.tsx` (state gốc) xuống các view/component con (`HRPersonnel`, `QuotationGenerator`, `ModuleView`). Chuyển đổi ngôn ngữ cập nhật state toàn cục và đồng bộ tất cả giao diện tức thời.
 - **Quy tắc phòng ngừa:** Luôn giữ một nguồn sự thật (Single Source of Truth) cho ngôn ngữ toàn hệ thống. Mọi component mới phải thiết kế nhận prop `lang` để hỗ trợ đa ngôn ngữ.
 
+### LL-18. Thiết kế Sidebar co giãn khi Hover mà không gây vỡ bố cục (Layout Shifts)
+- **Triệu chứng:** Khi Sidebar co giãn từ `w-20` (80px) sang `w-64` (256px) bằng hover, nó đẩy nội dung bên phải và làm co giãn các biểu đồ Recharts hoặc nội dung bảng, gây hiệu ứng giật khung hình và tính toán lại chiều rộng.
+- **Nguyên nhân gốc:** Sidebar thông thường tham gia vào dòng chảy tài liệu (document flow). Sự thay đổi kích thước của Sidebar làm thay đổi trực tiếp vùng chứa nội dung của phần còn lại.
+- **Khắc phục:** Thiết lập Sidebar là vị trí tuyệt đối (`absolute`) có độ ưu tiên cao (`z-30`) và chuyển đổi chiều rộng mượt mà. Đồng thời, thêm một thanh đệm ẩn cố định có kích thước bằng Sidebar khi thu gọn (`w-20`) ở dòng chảy tài liệu chính. Khi hover qua, Sidebar sẽ mở rộng đè (overlay) lên trên phần nội dung bên phải chứ không đẩy nó sang bên, từ đó triệt tiêu hoàn toàn hiện tượng layout shift cho các component biểu đồ và bảng dữ liệu.
+
 ---
 
-_Cập nhật lần cuối: Phase 2 hoàn thành nâng cấp Đa ngôn ngữ (English/Vietnamese), Phân quyền UI theo vai trò (Admin/Manager/Employee), cải tiến giao diện Đăng nhập cao cấp, và bản địa hóa Công cụ báo giá NDT. Build production cục bộ thành công 100%._
+_Cập nhật lần cuối: Phase 3 hoàn thành nâng cấp Logo BinaTech Home Button, Sidebar co giãn khi Hover thông minh không gây vỡ bố cục, mở rộng các trường dữ liệu cho 9 phân hệ chuẩn ERP 1Office và Việt hóa / Anh hóa toàn bộ giá trị Dropdown. Build production cục bộ thành công 100%._
+

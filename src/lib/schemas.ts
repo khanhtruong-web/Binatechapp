@@ -1,6 +1,6 @@
 import { FieldDef, ModuleSchema } from './types';
 
-// Field schemas tuned for an NDT welding-inspection service company.
+// Field schemas tuned for an NDT welding-inspection service company, expanded to match 1Office enterprise depth.
 // The first 5 fields of each module are shown as grid columns in ModuleView.
 export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
   'Marketing': {
@@ -17,6 +17,11 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'email', label: 'Email', type: 'text' },
       { name: 'potentialValue', label: 'Potential Value ($)', type: 'number' },
       { name: 'nextFollowUp', label: 'Next Follow-up', type: 'date' },
+      { name: 'leadSource', label: 'Lead Source', type: 'select', options: ['Website', 'Referral', 'Exhibition', 'Direct Call', 'Email Campaign', 'Other'] },
+      { name: 'assignedSale', label: 'Assigned Sales Rep', type: 'text' },
+      { name: 'conversionRate', label: 'Win Probability (%)', type: 'number' },
+      { name: 'competitors', label: 'Competitors', type: 'text' },
+      { name: 'lostReason', label: 'Reason Lost', type: 'select', options: ['Price Too High', 'Competitor Won', 'No Response', 'Project Cancelled', 'Other'] },
       { name: 'meetingLogs', label: 'Meeting Logs', type: 'textarea' }
     ]
   },
@@ -34,6 +39,13 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'invoiceDate', label: 'Invoice Date', type: 'date' },
       { name: 'dueDate', label: 'Due Date', type: 'date' },
       { name: 'paymentDate', label: 'Payment Date', type: 'date' },
+      { name: 'invoiceType', label: 'Invoice Type', type: 'select', options: ['Revenue/Receipt', 'Expense/Payment', 'Internal Transfer'] },
+      { name: 'paymentMethod', label: 'Payment Method', type: 'select', options: ['Bank Transfer', 'Cash', 'Credit Card', 'Other'] },
+      { name: 'poNumber', label: 'Contract / PO Number', type: 'text' },
+      { name: 'billingAddress', label: 'Billing Address', type: 'text' },
+      { name: 'taxCode', label: 'Tax Code', type: 'text' },
+      { name: 'paidAmount', label: 'Paid Amount ($)', type: 'number' },
+      { name: 'balanceDue', label: 'Balance Due ($)', type: 'number' },
       { name: 'opExpenses', label: 'Operational Expenses', type: 'number' },
       { name: 'remarks', label: 'Remarks', type: 'textarea' }
     ]
@@ -55,6 +67,15 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'contractEnd', label: 'Contract End Date', type: 'date' },
       { name: 'radiationCardNo', label: 'Radiation Safety Card No.', type: 'text' },
       { name: 'eyeTestDate', label: 'Last Eye Test Date', type: 'date' },
+      { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+      { name: 'dob', label: 'Date of Birth', type: 'date' },
+      { name: 'nationalId', label: 'National ID / Passport', type: 'text' },
+      { name: 'socialInsNo', label: 'Social Insurance No.', type: 'text' },
+      { name: 'bankAccount', label: 'Bank Account No.', type: 'text' },
+      { name: 'bankName', label: 'Bank Name', type: 'text' },
+      { name: 'baseSalary', label: 'Base Salary ($)', type: 'number' },
+      { name: 'allowance', label: 'Project Allowance ($)', type: 'number' },
+      { name: 'status', label: 'Employment Status', type: 'select', options: ['Active', 'Probation', 'Terminated'] }
     ]
   },
   'Project Control': {
@@ -73,6 +94,11 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'methods', label: 'NDT Methods', type: 'select', options: ['RT', 'UT', 'PAUT', 'TOFD', 'MT', 'PT', 'UTM', 'Multiple'] },
       { name: 'contractValue', label: 'Contract Value ($)', type: 'number' },
       { name: 'personnel', label: 'Assigned Personnel', type: 'lookup' },
+      { name: 'projectManager', label: 'Project Manager (PM)', type: 'text' },
+      { name: 'actualCost', label: 'Actual Cost Incurred ($)', type: 'number' },
+      { name: 'estMargin', label: 'Expected Margin (%)', type: 'number' },
+      { name: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+      { name: 'clientFeedback', label: 'Client Feedback / Rating', type: 'select', options: ['Excellent', 'Good', 'Fair', 'Poor'] },
       { name: 'scope', label: 'Scope of Work', type: 'textarea' }
     ]
   },
@@ -89,6 +115,11 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'revision', label: 'Revision', type: 'text' },
       { name: 'approvedBy', label: 'Approved By (Level III)', type: 'text' },
       { name: 'issueDate', label: 'Issue Date', type: 'date' },
+      { name: 'preparedBy', label: 'Prepared By', type: 'text' },
+      { name: 'reviewedBy', label: 'Reviewed By', type: 'text' },
+      { name: 'applicableScope', label: 'Applicable Scope', type: 'text' },
+      { name: 'nextReviewDate', label: 'Next Audit Review', type: 'date' },
+      { name: 'isConfidential', label: 'Confidentiality Level', type: 'select', options: ['Public', 'Partner Shared', 'Strictly Internal'] },
       { name: 'driveLink', label: 'Drive File', type: 'file' }
     ]
   },
@@ -106,6 +137,10 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'hours', label: 'Hours Tracked', type: 'number' },
       { name: 'date', label: 'Date Completed', type: 'date' },
       { name: 'certExpiry', label: 'Certificate Expiry', type: 'date' },
+      { name: 'cost', label: 'Training Cost ($)', type: 'number' },
+      { name: 'instructor', label: 'Instructor / Trainer', type: 'text' },
+      { name: 'score', label: 'Exam Score', type: 'number' },
+      { name: 'sponsor', label: 'Sponsorship', type: 'select', options: ['Company Sponsored', 'Self Sponsored'] },
       { name: 'certificate', label: 'Certificate Drive Link', type: 'file' }
     ]
   },
@@ -126,9 +161,15 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'calCertNo', label: 'Cal. Certificate No.', type: 'text' },
       { name: 'calAgency', label: 'Calibration Agency', type: 'text' },
       { name: 'location', label: 'Location / Custodian', type: 'text' },
-      { name: 'maintenanceLog', label: 'Maintenance Log', type: 'textarea' },
+      { name: 'purchaseDate', label: 'Purchase Date', type: 'date' },
+      { name: 'purchaseValue', label: 'Purchase Value ($)', type: 'number' },
+      { name: 'depreciationYears', label: 'Depreciation (Years)', type: 'number' },
+      { name: 'lastMaintenanceDate', label: 'Last Service Date', type: 'date' },
+      { name: 'isRadiationHazard', label: 'Radiation Safety Hazard', type: 'select', options: ['Yes', 'No'] },
+      { name: 'storageLocation', label: 'Storage Warehouse', type: 'text' },
       { name: 'isotopeSource', label: 'Isotope Source Type', type: 'select', options: ['N/A', 'Ir-192', 'Se-75', 'Co-60', 'X-Ray Tube'] },
-      { name: 'sourceActivity', label: 'Source Activity (Ci)', type: 'number' }
+      { name: 'sourceActivity', label: 'Source Activity (Ci)', type: 'number' },
+      { name: 'maintenanceLog', label: 'Maintenance Log', type: 'textarea' }
     ]
   },
   'NDT Reports': {
@@ -143,15 +184,20 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'result', label: 'Result', type: 'select', options: ['Accept', 'Reject'] },
       { name: 'drawingNo', label: 'Drawing / ISO No.', type: 'text' },
       { name: 'welderId', label: 'Welder ID', type: 'text' },
+      { name: 'welderName', label: 'Welder Full Name', type: 'text' },
+      { name: 'segmentNo', label: 'Inspection Segment', type: 'text' },
       { name: 'wpsNo', label: 'WPS No.', type: 'text' },
       { name: 'material', label: 'Material Spec', type: 'text' },
       { name: 'thickness', label: 'Thickness (mm)', type: 'number' },
       { name: 'diameter', label: 'Diameter (NPS/OD)', type: 'text' },
+      { name: 'sensitivity', label: 'Inspection Sensitivity (%)', type: 'number' },
+      { name: 'filmSize', label: 'Film / Probe Specification', type: 'text' },
       { name: 'procedureNo', label: 'NDT Procedure No.', type: 'lookup' },
-      { name: 'acceptanceCriteria', label: 'Acceptance Criteria', type: 'select', options: ['ASME VIII Div.1', 'ASME B31.3 Normal', 'ASME B31.3 Severe Cyclic', 'API 1104', 'API 650', 'AWS D1.1', 'ISO 5817-B', 'ISO 5817-C'] },
-      { name: 'defectType', label: 'Defect Type', type: 'select', options: ['None', 'Porosity', 'Slag Inclusion', 'Lack of Fusion', 'Incomplete Penetration', 'Crack', 'Undercut', 'Tungsten Inclusion', 'Burn Through', 'Other'] },
+      { name: 'acceptanceCriteria', label: 'Acceptance Criteria', type: 'select', options: ['ASME VIII Div.1', 'ASME B31.3 Normal', 'ASME B31.3 Severe Cyclic', 'API 1104', 'API 650', 'API 650', 'AWS D1.1', 'ISO 5817-B', 'ISO 5817-C'] },
+      { name: 'defectType', label: 'Defect Type', type: 'select', options: ['None', 'Porosity', 'Slag Inclusion', 'Lack of Fusion', 'Incomplete Penetration', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Lack of Fusion', 'Incomplete Penetration', 'Crack', 'Undercut', 'Tungsten Inclusion', 'Burn Through', 'Other'] },
       { name: 'defectLocation', label: 'Defect Location / Extent', type: 'text' },
       { name: 'repairStatus', label: 'Repair Status', type: 'select', options: ['N/A', 'R1', 'R2', 'Cut-out'] },
+      { name: 'reviewStatus', label: 'Review Status', type: 'select', options: ['Draft', 'Checked by Inspector', 'Approved by Level III'] },
       { name: 'testDate', label: 'Test Date', type: 'date' },
       { name: 'inspectorId', label: 'Inspector', type: 'lookup' },
       { name: 'driveLink', label: 'Report PDF', type: 'file' }
@@ -170,6 +216,10 @@ export const MODULE_SCHEMAS: Record<string, ModuleSchema> = {
       { name: 'submissionDate', label: 'Submission Date', type: 'date' },
       { name: 'bidValue', label: 'Bid Value ($)', type: 'number' },
       { name: 'methods', label: 'NDT Methods Required', type: 'text' },
+      { name: 'assignedTenderPM', label: 'Assigned Tender PM', type: 'text' },
+      { name: 'bondValue', label: 'Bid Bond Value ($)', type: 'number' },
+      { name: 'wonLostDate', label: 'Award Announcement Date', type: 'date' },
+      { name: 'competitorBids', label: 'Competitor Bids Details', type: 'textarea' },
       { name: 'techMatrix', label: 'Technical Matrix', type: 'file' },
       { name: 'commMatrix', label: 'Commercial Matrix', type: 'file' },
       { name: 'remarks', label: 'Remarks', type: 'textarea' }
